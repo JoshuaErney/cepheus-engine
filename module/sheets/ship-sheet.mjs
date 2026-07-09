@@ -126,7 +126,7 @@ export class CepheusShipSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (amount > 0) {
       const hp = this.actor.system.hullPoints;
       await this.actor.update({
-        "system.hullPoints.damage": Math.min(hp.max, (hp.damage ?? 0) + amount),
+        "system.hullPoints.value": Math.max(0, hp.value - amount),
       });
     }
   }
@@ -147,7 +147,7 @@ export class CepheusShipSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (amount > 0) {
       const sp = this.actor.system.structurePoints;
       await this.actor.update({
-        "system.structurePoints.damage": Math.min(sp.max, (sp.damage ?? 0) + amount),
+        "system.structurePoints.value": Math.max(0, sp.value - amount),
       });
     }
   }

@@ -57,6 +57,36 @@
     </ol>
   </div>
 
+  {{!-- Augments --}}
+  <div class="items-section">
+    <div class="section-header flexrow">
+      <h3>{{localize "CEPHEUS.Augments"}}</h3>
+      <button type="button" data-action="createItem" data-type="augment">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+    <ol class="items-list">
+      {{#each augments as |item|}}
+        <li class="item-row flexrow" data-item-id="{{item.id}}">
+          <span class="item-name">{{item.name}}</span>
+          {{#if item.system.characteristic}}
+            <span class="item-detail" title="{{localize 'CEPHEUS.LinkedCharacteristic'}}">
+              {{localize (lookup ../charConfig item.system.characteristic)}}
+              {{cepheusSign item.system.bonus}}
+            </span>
+          {{/if}}
+          <span class="item-detail">TL{{item.system.tl}}</span>
+          <div class="item-controls">
+            <button type="button" data-action="editItem" data-item-id="{{item.id}}"><i class="fas fa-edit"></i></button>
+            <button type="button" data-action="deleteItem" data-item-id="{{item.id}}"><i class="fas fa-trash"></i></button>
+          </div>
+        </li>
+      {{else}}
+        <li class="empty-row">{{localize "CEPHEUS.None"}}</li>
+      {{/each}}
+    </ol>
+  </div>
+
   {{!-- Equipment --}}
   <div class="items-section">
     <div class="section-header flexrow">

@@ -16,6 +16,7 @@ import { SKILLS_SEED }  from "./module/data/seeds/skills.mjs";
 import { WEAPONS_SEED } from "./module/data/seeds/weapons.mjs";
 import { ARMOR_SEED }      from "./module/data/seeds/armor.mjs";
 import { EQUIPMENT_SEED }  from "./module/data/seeds/equipment.mjs";
+import { AUGMENTS_SEED }   from "./module/data/seeds/augments.mjs";
 
 Hooks.once("init", () => {
   console.log("Cepheus Engine SRD | Initialising");
@@ -93,6 +94,7 @@ async function seedCompendiums() {
   await seedPack("cepheus-engine.weapons",   WEAPONS_SEED);
   await seedPack("cepheus-engine.armor",     ARMOR_SEED);
   await seedPack("cepheus-engine.equipment", EQUIPMENT_SEED);
+  await seedPack("cepheus-engine.augments",  AUGMENTS_SEED);
 }
 
 // Add any skills in SKILLS_SEED that are not yet in the compendium.

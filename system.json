@@ -67,6 +67,13 @@
       "path": "packs/equipment",
       "type": "Item",
       "system": "cepheus-engine"
+    },
+    {
+      "name": "augments",
+      "label": "Cepheus Engine Augments",
+      "path": "packs/augments",
+      "type": "Item",
+      "system": "cepheus-engine"
     }
   ],
   "url": "",

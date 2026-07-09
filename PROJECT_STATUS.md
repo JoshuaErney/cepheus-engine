@@ -6,8 +6,8 @@ what's left — without re-reading the whole codebase. Complements `CLAUDE.md` (
 covers *conventions and how-to*); this file covers *what's actually built*.
 
 Last reviewed: 2026-07-08. Re-verify against the code before trusting specifics — this is
-a snapshot, not a live source of truth. No git repo exists yet, so there's no commit
-history to diff against; treat file line numbers here as approximate.
+a snapshot, not a live source of truth. A git repo was initialized on this date
+(see `git log`); treat file line numbers here as approximate.
 
 ---
 
@@ -26,7 +26,7 @@ mindmap
       weapon
       armor
       equipment
-      augment (schema+sheet only, NOT wired into actor UI)
+      augment (wired into actor UI, homebrew seed content — no SRD source table)
       shipComponent
     Core mechanics
       2D6 + skill + char DM vs difficulty
@@ -43,11 +43,9 @@ mindmap
       39 weapons
       9 armors
       121 equipment items
-      0 augments (none seeded)
+      12 augments (homebrew, seeded)
     Known gaps
-      Ship damage buttons write nonexistent schema field
-      Augments invisible on actor sheets
-      No git / no CI / no automated tests
+      No CI / no automated tests
 ```
 
 ---
@@ -55,8 +53,8 @@ mindmap
 ## 2. File-by-file inventory
 
 ```
-system.json           Manifest. v0.1.0, compat min/verified "14". 4 packs registered
-                       (skills/weapons/armor/equipment — no augments pack).
+system.json           Manifest. v0.1.0, compat min/verified "14". 5 packs registered
+                       (skills/weapons/armor/equipment/augments).
 cepheus.mjs            Entry point. Registers doc classes, data models, sheets (per
                        actor type — character/npc/creature/ship each get a distinct
                        sheet class), Handlebars helpers. On `ready` (GM only): seeds
@@ -99,7 +97,8 @@ module/data/actor-data.mjs   (190 lines)
     - prepareDerivedData(): hardpoints = floor(displacement/100); fuelPerJump =
       jumpRating × displacement × 0.1; fuelPerMonth = powerPlant × displacement ×
       0.01; freeCargo = cargoCapacity − cargoUsed.
-    - ⚠ hullPoints/structurePoints have NO `damage` field — see §4 Issue 1.
+    - hullPoints/structurePoints have no `damage` field by design — the sheet's
+      damage buttons decrement `value` directly (see ship-sheet.mjs below).
 
 module/data/item-data.mjs   (86 lines)
   SkillData:      level (0-5), characteristic (incl. "psi"), psionic (bool), costPsi,
@@ -163,8 +162,8 @@ module/sheets/actor-sheet.mjs   (198 lines) — CepheusActorSheet (character)
   actions: startChargen, rollCharacteristic, rollSkill, rollAttack, rollDamage,
   rollPsionic, testPsionics, recoverPsi, createItem, editItem, deleteItem,
   applyDamage, healDamage, fullRecovery.
-  Context includes `augments` (itemTypes.augment) but no template consumes it — see
-  §4 Issue 2.
+  Context includes `augments` (itemTypes.augment), rendered as an Augments section
+  in equipment.hbs (list + create button), same pattern as Weapons/Armor/Equipment.
 
 module/sheets/npc-sheet.mjs — CepheusNpcSheet extends CepheusActorSheet.
   Same PARTS minus biography, swaps notes template for an NPC-specific one.
@@ -181,8 +180,9 @@ module/sheets/ship-sheet.mjs   (154 lines) — CepheusShipSheet
   Own PARTS (header, tabs, statistics, components, notes).
   actions: createComponent, editItem, deleteItem, applyHullDamage,
   applyStructureDamage.
-  ⚠ applyHullDamage/applyStructureDamage write system.hullPoints.damage /
-  system.structurePoints.damage — see §4 Issue 1.
+  applyHullDamage/applyStructureDamage decrement system.hullPoints.value /
+  system.structurePoints.value directly (clamped at 0), matching what the header
+  template displays.
 
 module/sheets/item-sheet.mjs   (42 lines) — CepheusItemSheet, one sheet class for
   all 6 item types; body.hbs branches per itemType. rollAttack/rollDamage actions
@@ -249,7 +249,7 @@ packs on first `ready` hook if the pack is empty).
 | weapons     | module/data/seeds/weapons.mjs  | 39 |
 | armor       | module/data/seeds/armor.mjs    | 9 |
 | equipment   | module/data/seeds/equipment.mjs| 121 |
-| *(none)*    | *(no augment seed exists)*     | 0 |
+| augments    | module/data/seeds/augments.mjs | 12 (homebrew — no SRD source table for cybernetics/bio-augments, see below) |
 
 ### Career data (`module/data/careers.mjs`, 523 lines)
 
@@ -294,50 +294,26 @@ checked by hand against their possible expansions and all resolve).
 
 ## 4. Known issues (unfixed as of last review)
 
-1. **Ship damage buttons write a nonexistent schema field.**
-   `module/sheets/ship-sheet.mjs` `#onApplyHullDamage`/`#onApplyStructureDamage` update
-   `system.hullPoints.damage` / `system.structurePoints.damage`, but
-   `ShipData.defineSchema()` in `module/data/actor-data.mjs` only defines `value`/`max`
-   for both fields (no `damage`). The header template also displays `value`/`max`
-   directly, not a derived current-minus-damage figure. **Fix:** either add a `damage`
-   field to the ship schema and derive a displayed current value (matching the
-   humanoid/creature pattern), or simplify the button handlers to decrement `value`
-   directly, matching what's actually displayed. The second is less code and more
-   consistent with how the rest of the ship sheet already works.
-
-2. **Augment items are unreachable from any actor sheet.**
-   `AugmentData` (item-data.mjs) and the augment fields in `item/body.hbs` are fully
-   built, and `actor-sheet.mjs` even computes `augments: this.actor.itemTypes.augment`
-   in its context — but `templates/actor/equipment.hbs` never renders that list, and
-   there's no `createItem` button with `data-type="augment"` anywhere. An augment item
-   dropped onto a character via drag-and-drop from the sidebar would still attach (base
-   Foundry drop handling) but be invisible on the sheet. **Fix:** add an Augments
-   section to equipment.hbs (list + create button), following the same pattern as
-   Weapons/Armor/Equipment.
-
-3. **No augment compendium content.** Schema and UI (once #2 is fixed) exist, but there's
-   no seed file / pack for augments — nothing to browse or drag onto a character yet.
-
-4. **No version control.** The project has no `.git` — everything above is inferred from
-   file timestamps/content, not commit history. Recommend initializing git before the
-   codebase grows further.
-
-5. **Not yet exercised live.** The system is symlinked into a local Foundry Data folder
+1. **Not yet exercised live.** The system is symlinked into a local Foundry Data folder
    (`~/Library/Application Support/FoundryVTT/Data/systems/cepheus-engine`), but no
    session has been used to actually click through sheets/chargen/rolls as part of this
    review — only static code analysis. Worth a manual pass before relying on any of the
-   above as "working," especially chargen's full apply-to-actor flow.
+   above as "working," especially chargen's full apply-to-actor flow and the new
+   augments pack seeding on next world launch.
 
-6. **Minor duplication (not a bug):** `CreatureData.prepareDerivedData()` reimplements
+2. **Minor duplication (not a bug):** `CreatureData.prepareDerivedData()` reimplements
    the same wound-state logic as `HumanoidData._computeWoundState()` instead of sharing
    it. Low priority — would need a shared mixin/base since Creature doesn't extend
    Humanoid (different characteristic sets).
+
+Resolved since the last review (2026-07-08): ship damage buttons writing a
+nonexistent schema field, augments being unreachable from actor sheets, no augment
+compendium content, and no version control. See `git log` for details.
 
 ---
 
 ## 5. Not yet started
 
-- Augment compendium content (SRD cybernetics/bio-augments, if desired)
 - Any macro library / rollable-table integration beyond the built-in actor methods
 - Automated tests of any kind
 - Regions-based AoE tooling (CLAUDE.md notes Measured Templates are removed in v14 in
@@ -353,6 +329,6 @@ checked by hand against their possible expansions and all resolve).
 This file is a manually-curated snapshot, not generated. To refresh it:
 1. Re-run the file inventory (`find . -type f -not -path './.git/*'`).
 2. Re-diff localization keys used in templates/JS against `lang/en.json`.
-3. Re-check the two flagged issues above against current code before assuming they're
-   still open — search for `hullPoints.damage` and `data-type="augment"` respectively.
+3. Re-check the flagged issues above against current code before assuming they're
+   still open, and check `git log` for changes since the "Last reviewed" date.
 4. Update the "Last reviewed" date at the top.
