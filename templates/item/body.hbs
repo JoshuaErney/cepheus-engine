@@ -169,6 +169,29 @@
         <input type="number" name="system.cost" value="{{system.cost}}" min="0" {{#unless editable}}disabled{{/unless}} />
       </div>
     </div>
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.WeaponType"}}</label>
+        <select name="system.weaponType" {{#unless editable}}disabled{{/unless}}>
+          {{#each weaponTypeOptions as |label key|}}
+            <option value="{{key}}" {{#if (eq key system.weaponType)}}selected{{/if}}>{{localize label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Mount"}}</label>
+        <select name="system.mount" {{#unless editable}}disabled{{/unless}}>
+          {{#each mountOptions as |label key|}}
+            <option value="{{key}}" {{#if (eq key system.mount)}}selected{{/if}}>{{localize label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Damage"}}</label>
+        <input type="text" name="system.damage" value="{{system.damage}}" placeholder="e.g. 1D6"
+               {{#unless editable}}disabled{{/unless}} />
+      </div>
+    </div>
   {{/if}}
 
   {{!-- Description (all types) --}}

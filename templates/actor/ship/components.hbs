@@ -17,6 +17,7 @@
         <th>{{localize "CEPHEUS.Tonnage"}}</th>
         <th>{{localize "CEPHEUS.PowerRequired"}}</th>
         <th>{{localize "CEPHEUS.Cost"}}</th>
+        <th>{{localize "CEPHEUS.Hits"}}</th>
         <th></th>
       </tr>
     </thead>
@@ -30,11 +31,38 @@
             {{#if item.system.componentType}}
               <span class="component-type-tag">{{item.system.componentType}}</span>
             {{/if}}
+            {{#if item.system.weaponType}}
+              <span class="component-type-tag weapon-tag">
+                {{localize (lookup ../weaponTypeLabels item.system.weaponType)}}
+                ({{localize (lookup ../mountLabels item.system.mount)}})
+              </span>
+            {{/if}}
           </td>
           <td class="component-tonnage">{{item.system.tonnage}}T</td>
           <td class="component-power">{{item.system.powerRequired}}</td>
           <td class="component-cost">Cr{{item.system.cost}}</td>
+          <td class="component-hits">
+            {{#if item.system.weaponType}}
+              <div class="hit-track">
+                <button type="button" data-action="adjustMountHit" data-item-id="{{item.id}}" data-delta="-1"
+                        title="{{localize 'CEPHEUS.Repair'}}">−</button>
+                <span class="hit-value">{{item.system.hits}}/3</span>
+                <button type="button" data-action="adjustMountHit" data-item-id="{{item.id}}" data-delta="1"
+                        title="{{localize 'CEPHEUS.ApplyHit'}}">+</button>
+              </div>
+            {{/if}}
+          </td>
           <td class="item-controls">
+            {{#if item.system.weaponType}}
+              <button type="button" data-action="rollAttack" data-item-id="{{item.id}}"
+                      title="{{localize 'CEPHEUS.RollAttack'}}">
+                <i class="fas fa-dice-d6"></i>
+              </button>
+              <button type="button" data-action="rollWeaponDamage" data-item-id="{{item.id}}"
+                      title="{{localize 'CEPHEUS.RollDamage'}}">
+                <i class="fas fa-burst"></i>
+              </button>
+            {{/if}}
             <button type="button" data-action="editItem" data-item-id="{{item.id}}"
                     title="{{localize 'CEPHEUS.Edit'}}">
               <i class="fas fa-edit"></i>
@@ -47,7 +75,7 @@
         </tr>
       {{else}}
         <tr>
-          <td colspan="5" class="empty-row">{{localize "CEPHEUS.NoComponents"}}</td>
+          <td colspan="6" class="empty-row">{{localize "CEPHEUS.NoComponents"}}</td>
         </tr>
       {{/each}}
     </tbody>

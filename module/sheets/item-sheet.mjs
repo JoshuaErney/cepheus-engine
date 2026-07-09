@@ -24,6 +24,8 @@ export class CepheusItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
       system:      this.item.system,
       itemType:    this.item.type,
       charOptions: CONFIG.CEPHEUS.characteristics,
+      weaponTypeOptions: CONFIG.CEPHEUS.spaceCombat.weaponTypes,
+      mountOptions:      CONFIG.CEPHEUS.spaceCombat.mounts,
       hasActor:    !!this.item.actor,
     };
   }

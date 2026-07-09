@@ -74,6 +74,20 @@
       "path": "packs/augments",
       "type": "Item",
       "system": "cepheus-engine"
+    },
+    {
+      "name": "tables",
+      "label": "Cepheus Engine Tables",
+      "path": "packs/tables",
+      "type": "RollTable",
+      "system": "cepheus-engine"
+    },
+    {
+      "name": "macros",
+      "label": "Cepheus Engine Macros",
+      "path": "packs/macros",
+      "type": "Macro",
+      "system": "cepheus-engine"
     }
   ],
   "url": "",

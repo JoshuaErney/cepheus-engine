@@ -112,5 +112,34 @@
       </div>
     </div>
 
+    {{!-- Space Combat ────────────────────────────────────────────────────── --}}
+    <div class="ship-section">
+      <h3 class="section-title">{{localize "CEPHEUS.SpaceCombat"}}</h3>
+
+      <div class="stat-row flexrow combat-actions">
+        <button type="button" data-action="rollInitiative">
+          <i class="fas fa-dice-d6"></i> {{localize "CEPHEUS.RollInitiative"}}
+        </button>
+        <button type="button" data-action="applyShipHit">
+          <i class="fas fa-burst"></i> {{localize "CEPHEUS.ApplyHit"}}
+        </button>
+      </div>
+
+      <div class="system-hits-grid">
+        {{#each systemHitRows as |row|}}
+          <div class="system-hit-row flexrow">
+            <label>{{localize row.label}}</label>
+            <div class="hit-track">
+              <button type="button" data-action="adjustSystemHit" data-system="{{row.key}}" data-delta="-1"
+                      title="{{localize 'CEPHEUS.Repair'}}">−</button>
+              <span class="hit-value">{{row.value}}/3</span>
+              <button type="button" data-action="adjustSystemHit" data-system="{{row.key}}" data-delta="1"
+                      title="{{localize 'CEPHEUS.ApplyHit'}}">+</button>
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    </div>
+
   </div>
 </section>

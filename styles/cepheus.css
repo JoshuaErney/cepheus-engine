@@ -284,6 +284,49 @@
   margin-left: 0.4rem;
 }
 
+.cepheus-engine .component-type-tag.weapon-tag {
+  color: #c17b6b;
+}
+
+/* ---- Space combat ---- */
+.cepheus-engine .combat-actions {
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.cepheus-engine .system-hits-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cepheus-engine .system-hit-row {
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: #e0e0e0;
+}
+
+.cepheus-engine .hit-track {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cepheus-engine .hit-track button {
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  padding: 0;
+}
+
+.cepheus-engine .hit-value {
+  font-family: monospace;
+  min-width: 32px;
+  text-align: center;
+  color: #a8d8ea;
+}
+
 /* ---- Creature sheet ---- */
 .cepheus-engine.creature .characteristics-grid.creature-grid {
   grid-template-columns: repeat(2, 1fr);

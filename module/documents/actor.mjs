@@ -1,3 +1,5 @@
+import { damageToHits, applyTieredHit } from "../helpers/spacecombat.mjs";
+
 export class CepheusActor extends Actor {
   prepareDerivedData() {
     super.prepareDerivedData();
@@ -98,6 +100,20 @@ export class CepheusActor extends Actor {
       window: { title: game.i18n.localize("CEPHEUS.SelectDifficulty") },
       content: `<div class="form-group"><label>${game.i18n.localize("CEPHEUS.SelectDifficulty")}</label><select name="difficulty">${opts}</select></div>`,
       ok: { label: game.i18n.localize("CEPHEUS.RollAttack"), callback: (e, btn) => btn.form.elements.difficulty.value },
+    });
+  }
+
+  async _promptRange(defaultRange = "short") {
+    const { DialogV2 } = foundry.applications.api;
+    const opts = Object.entries(CONFIG.CEPHEUS.spaceCombat.rangeBands)
+      .map(([k, v]) =>
+        `<option value="${k}" ${k === defaultRange ? "selected" : ""}>${game.i18n.localize(v)}</option>`
+      )
+      .join("");
+    return DialogV2.prompt({
+      window: { title: game.i18n.localize("CEPHEUS.SelectRange") },
+      content: `<div class="form-group"><label>${game.i18n.localize("CEPHEUS.SelectRange")}</label><select name="range">${opts}</select></div>`,
+      ok: { label: game.i18n.localize("CEPHEUS.RollAttack"), callback: (e, btn) => btn.form.elements.range.value },
     });
   }
 
@@ -295,5 +311,250 @@ export class CepheusActor extends Actor {
       `CEPHEUS.Wound${state.charAt(0).toUpperCase() + state.slice(1)}`
     );
     ui.notifications.warn(`${this.name}: ${label}`);
+  }
+
+  // ── Ship combat (SRD Chapter 10) ────────────────────────────────────────
+
+  // 2D6 + Thrust DM (+1 if this ship has greater Thrust than its opponent,
+  // determined by the GM/player) + any Tactics-check Effect from the Captain.
+  async rollShipInitiative({ thrustAdvantage = false, tacticsEffect = 0 } = {}) {
+    const dm   = (thrustAdvantage ? 1 : 0) + tacticsEffect;
+    const roll = await new Roll(`2d6 + ${dm}`).evaluate();
+    const sign = dm >= 0 ? `+${dm}` : `${dm}`;
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor:  `<strong>${this.name}</strong> — Ship Initiative (DM${sign})`,
+    });
+    return roll;
+  }
+
+  // Gunner's Turret/Bay Weapons check vs the range-based difficulty for the
+  // weapon's type. `skillLevel`/`dm` are supplied by the caller since ships
+  // don't track crew skills themselves.
+  async rollShipAttack(componentItem, options = {}) {
+    const weaponType = componentItem.system.weaponType;
+    if (!weaponType) {
+      ui.notifications.warn(`${componentItem.name} is not configured as a weapon.`);
+      return null;
+    }
+    const hits = componentItem.system.hits ?? 0;
+    if (hits >= 2) {
+      ui.notifications.warn(`${componentItem.name} is disabled and cannot fire.`);
+      return null;
+    }
+
+    const range = options.range ?? await this._promptRange(options.defaultRange ?? "short");
+    if (!range) return null;
+
+    const diffKey = CONFIG.CEPHEUS.spaceCombat.attackDifficulty[weaponType]?.[range];
+    if (!diffKey) {
+      ui.notifications.warn(`${componentItem.name} cannot fire at that range.`);
+      return null;
+    }
+
+    const target          = CONFIG.CEPHEUS.difficulties[diffKey].target;
+    const trackingPenalty = hits === 1 ? -2 : 0;
+    const skillLevel      = options.skillLevel ?? 0;
+    const dm              = options.dm ?? 0;
+    const totalDm          = skillLevel + dm + trackingPenalty;
+
+    const roll    = await new Roll(`2d6 + ${totalDm}`).evaluate();
+    const success = roll.total >= target;
+    const effect  = roll.total - target;
+
+    const diffLabel  = game.i18n.localize(CONFIG.CEPHEUS.difficulties[diffKey].label);
+    const rangeLabel = game.i18n.localize(CONFIG.CEPHEUS.spaceCombat.rangeBands[range]);
+    const sign       = effect >= 0 ? `+${effect}` : `${effect}`;
+
+    const flavor = [
+      `<strong>${componentItem.name}</strong> — Ship Attack`,
+      `<span style="font-size:0.85em;color:#aaa">${rangeLabel} range / ${diffLabel} (${target}+)${trackingPenalty ? ` / tracking damaged DM${trackingPenalty}` : ""}</span>`,
+      success
+        ? `<span style="color:#4caf50">✔ ${game.i18n.localize("CEPHEUS.Success")} (Effect ${sign})</span>`
+        : `<span style="color:#f44336">✘ ${game.i18n.localize("CEPHEUS.Failure")}</span>`,
+    ].join("<br>");
+
+    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor: this }), flavor });
+    return { roll, success, effect };
+  }
+
+  async rollShipWeaponDamage(componentItem) {
+    const raw = componentItem.system.damage ?? "";
+    if (!/\d+d\d+/i.test(raw)) {
+      ui.notifications.info(`${componentItem.name}: no damage formula set.`);
+      return null;
+    }
+    const roll = await new Roll(raw).evaluate();
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor:  `<strong>${componentItem.name}</strong> — Weapon Damage<br><span style="font-size:0.85em;color:#aaa">Apply to the target with its "Apply Hit" action (subtracts armor automatically)</span>`,
+    });
+    return roll;
+  }
+
+  // Resolves a raw (pre-armor) damage total against this ship: subtracts
+  // armor, converts the result to a hit count via the Space Combat Damage
+  // table, then rolls Hit Location and applies each effect in turn.
+  async applyShipDamage(rawDamage, { radiation = false } = {}) {
+    const armor     = this.system.armor ?? 0;
+    const effective = Math.max(0, rawDamage - armor);
+
+    const lines = [
+      `<strong>${this.name}</strong> — Space Combat Damage`,
+      `<span style="font-size:0.85em;color:#aaa">Raw ${rawDamage} − Armor ${armor} = ${effective} effective</span>`,
+    ];
+
+    if (effective <= 0) {
+      lines.push("No damage.");
+      await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this }), content: lines.join("<br>") });
+      return;
+    }
+
+    const hits   = damageToHits(effective);
+    const events = [
+      ...Array(hits.single).fill(1),
+      ...Array(hits.double).fill(2),
+      ...Array(hits.triple).fill(3),
+    ];
+
+    for (const multiplier of events) {
+      const locRoll = await new Roll("2d6").evaluate();
+      const column  = this.system.isSmallCraft
+        ? "smallCraft"
+        : (this.system.hullPoints.value > 0 ? "external" : "internal");
+      const locationKey = CONFIG.CEPHEUS.spaceCombat.hitLocation[locRoll.total][column];
+      const label        = CONFIG.CEPHEUS.spaceCombat.locationLabels[locationKey];
+      const effectText   = await this._resolveShipHitLocation(locationKey, multiplier, { radiation });
+      lines.push(`[${locRoll.total}] <strong>${label}</strong>${multiplier > 1 ? ` ×${multiplier}` : ""} — ${effectText}`);
+    }
+
+    await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this }), content: lines.join("<br>") });
+  }
+
+  async _resolveShipHitLocation(locationKey, multiplier, { radiation = false } = {}) {
+    const sc = CONFIG.CEPHEUS.spaceCombat;
+
+    if (locationKey === "hull") {
+      const hp    = this.system.hullPoints;
+      const value = Math.max(0, hp.value - multiplier);
+      await this.update({ "system.hullPoints.value": value });
+      return `Hull ${value}/${hp.max}` + (value === 0 ? " — hull breached!" : "");
+    }
+
+    if (locationKey === "structure") {
+      const sp    = this.system.structurePoints;
+      const value = Math.max(0, sp.value - multiplier);
+      await this.update({ "system.structurePoints.value": value });
+      if (value === 0) ui.notifications.error(`${this.name}: structure destroyed!`);
+      return `Structure ${value}/${sp.max}` + (value === 0 ? " — ship destroyed!" : "");
+    }
+
+    if (locationKey === "armor") {
+      const armor = this.system.armor ?? 0;
+      if (armor <= 0) return await this._resolveShipHitLocation("hull", multiplier, { radiation });
+      const value = Math.max(0, armor - multiplier);
+      await this.update({ "system.armor": value });
+      return `Armor reduced to ${value}`;
+    }
+
+    if (locationKey === "crew") {
+      const results = [];
+      for (let i = 0; i < multiplier; i++) results.push(await this._rollShipCrewDamage(radiation));
+      return results.join("; ");
+    }
+
+    if (locationKey === "turret" || locationKey === "bay") {
+      return this._applyShipMountHit(locationKey, multiplier, { radiation });
+    }
+
+    const def = sc.subsystems[locationKey];
+    if (!def) return "No effect.";
+
+    const field   = `${locationKey}Hits`;
+    const current = this.system[field] ?? 0;
+    const { value, overflow } = applyTieredHit(current, multiplier);
+    await this.update({ [`system.${field}`]: value });
+    let text = value > 0 ? def.tiers[value - 1] : "No effect.";
+
+    // Power Plant tier 2 and Bridge tier 1 specifically trigger a Crew Hit
+    // (radiation/normal respectively) — roll it once, the first time this
+    // resolution crosses into that tier.
+    if (locationKey === "powerPlant" && current < 2 && value >= 2) {
+      text += ` — ${await this._rollShipCrewDamage(true)}`;
+    }
+    if (locationKey === "bridge" && current < 1 && value >= 1) {
+      text += ` — ${await this._rollShipCrewDamage(false)}`;
+    }
+
+    // Fuel/Hold tiers actually consume the tracked resource.
+    if (locationKey === "fuel" && value >= 3) {
+      await this.update({ "system.fuel.value": 0 });
+      text += " — all fuel lost";
+    } else if (locationKey === "fuel" && value === 2) {
+      const pct  = await new Roll("1d6*10").evaluate();
+      const lost = Math.round((this.system.fuel.value * pct.total) / 100);
+      await this.update({ "system.fuel.value": Math.max(0, this.system.fuel.value - lost) });
+      text += ` (${pct.total}%, ${lost}T lost)`;
+    }
+    if (locationKey === "hold" && value >= 3) {
+      await this.update({ "system.cargoUsed": 0 });
+      text += " — cargo hold and contents destroyed";
+    } else if (locationKey === "hold" && (value === 1 || value === 2)) {
+      const pct  = await new Roll("1d6*10").evaluate();
+      const lost = Math.round((this.system.cargoUsed * pct.total) / 100);
+      await this.update({ "system.cargoUsed": Math.max(0, this.system.cargoUsed - lost) });
+      text += ` (${pct.total}%, ${lost}T lost)`;
+    }
+
+    if (overflow > 0) {
+      const redirected = await this._resolveShipHitLocation(def.subsequent, overflow, { radiation });
+      text += ` + overflow → ${sc.locationLabels[def.subsequent]}: ${redirected}`;
+    }
+    return text;
+  }
+
+  async _applyShipMountHit(mount, multiplier, { radiation = false } = {}) {
+    const sc  = CONFIG.CEPHEUS.spaceCombat;
+    const def = sc.mountHits[mount];
+    const candidates = (this.itemTypes.shipComponent ?? [])
+      .filter(c => c.system.mount === mount && c.system.weaponType);
+
+    if (!candidates.length) {
+      const redirected = await this._resolveShipHitLocation(def.subsequent, multiplier, { radiation });
+      return `No ${mount} systems aboard — redirected to ${sc.locationLabels[def.subsequent]}: ${redirected}`;
+    }
+
+    const component = candidates[Math.floor(Math.random() * candidates.length)];
+    const current    = component.system.hits ?? 0;
+    const { value, overflow } = applyTieredHit(current, multiplier);
+    await component.update({ "system.hits": value });
+    let text = `${component.name}: ${def.tiers[value - 1]}`;
+
+    if (overflow > 0) {
+      const redirected = await this._resolveShipHitLocation(def.subsequent, overflow, { radiation });
+      text += ` + overflow → ${sc.locationLabels[def.subsequent]}: ${redirected}`;
+    }
+    return text;
+  }
+
+  async _rollShipCrewDamage(radiation) {
+    const cd = CONFIG.CEPHEUS.spaceCombat.crewDamage;
+    const r  = await new Roll("2d6").evaluate();
+    const total = r.total;
+
+    let entry;
+    if      (total <= cd.low.max)  entry = cd.low;
+    else if (total <= cd.mid.max)  entry = cd.mid;
+    else if (total <= cd.high.max) entry = cd.high;
+    else if (total === 11)         entry = cd.all1;
+    else                            entry = cd.all2;
+
+    if (entry.none) return `Crew Hit [${total}]: lucky escape, no damage`;
+
+    const formula  = radiation ? entry.formula.radiation : entry.formula.normal;
+    const dmgRoll  = await new Roll(formula).evaluate();
+    const who      = entry.allCrew ? "All crew" : "One random crew member";
+    const kind     = radiation ? "rads" : "damage";
+    return `Crew Hit [${total}]: ${who} suffers ${dmgRoll.total} ${kind} (GM: apply manually)`;
   }
 }

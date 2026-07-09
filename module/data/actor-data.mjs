@@ -7,6 +7,43 @@ function characteristicField(initial = 7) {
   });
 }
 
+// Shared by any data model with a `characteristics` SchemaField (humanoid or
+// creature) — derives current/value/dm/isDamaged/isDown per characteristic.
+function computeCharacteristicDerived(characteristics) {
+  const table = CONFIG.CEPHEUS.dmByValue;
+  for (const char of Object.values(characteristics)) {
+    char.current = Math.max(0, char.max - char.damage);
+    char.value   = char.current; // alias: Foundry token bar reads .value
+    char.dm = table[Math.clamp(char.current, 0, table.length - 1)];
+    char.isDamaged = char.damage > 0;
+    char.isDown = char.current === 0;
+  }
+}
+
+// Shared wound-state table (SRD): STR/DEX/END-based. 3 down = dead; 2 down +
+// END=0 = dead; 2 down = mortally; 1 down = seriously; any damage = lightly.
+function computeWoundState(characteristics) {
+  const phys = ["str", "dex", "end"];
+  const downCount  = phys.filter(k => characteristics[k]?.current === 0).length;
+  const anyDamaged = Object.values(characteristics).some(c => c.damage > 0);
+  const endDown    = characteristics.end?.current === 0;
+
+  let woundState;
+  if      (downCount >= 3)             woundState = "dead";
+  else if (downCount === 2 && endDown) woundState = "dead";    // END=0 while seriously wounded
+  else if (downCount === 2)            woundState = "mortally";
+  else if (downCount === 1)            woundState = "seriously";
+  else if (anyDamaged)                 woundState = "lightly";
+  else                                  woundState = "healthy";
+
+  let woundPenalty;
+  if      (woundState === "lightly")                          woundPenalty = -1;
+  else if (woundState === "seriously" || woundState === "mortally") woundPenalty = -2;
+  else                                                         woundPenalty = 0;
+
+  return { woundState, woundPenalty };
+}
+
 // Shared base for humanoid actors (character, npc)
 class HumanoidData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
@@ -29,13 +66,7 @@ class HumanoidData extends foundry.abstract.TypeDataModel {
 
   prepareDerivedData() {
     const table = CONFIG.CEPHEUS.dmByValue;
-    for (const char of Object.values(this.characteristics)) {
-      char.current = Math.max(0, char.max - char.damage);
-      char.value   = char.current; // alias: Foundry token bar reads .value
-      char.dm = table[Math.clamp(char.current, 0, table.length - 1)];
-      char.isDamaged = char.damage > 0;
-      char.isDown = char.current === 0;
-    }
+    computeCharacteristicDerived(this.characteristics);
     this.upp = Object.values(this.characteristics)
       .map(c => Math.clamp(c.max, 0, 15).toString(16).toUpperCase())
       .join("");
@@ -48,26 +79,7 @@ class HumanoidData extends foundry.abstract.TypeDataModel {
       this.psi.isDown   = this.psi.current === 0;
     }
 
-    this._computeWoundState();
-  }
-
-  _computeWoundState() {
-    const phys = ["str", "dex", "end"];
-    const downCount = phys.filter(k => this.characteristics[k]?.current === 0).length;
-    const anyDamaged = Object.values(this.characteristics).some(c => c.damage > 0);
-    const endDown = this.characteristics.end?.current === 0;
-
-    if      (downCount >= 3)                this.woundState = "dead";
-    else if (downCount === 2 && endDown)    this.woundState = "dead";    // END=0 while seriously wounded
-    else if (downCount === 2)               this.woundState = "mortally";
-    else if (downCount === 1)               this.woundState = "seriously";
-    else if (anyDamaged)                    this.woundState = "lightly";
-    else                                    this.woundState = "healthy";
-
-    if      (this.woundState === "lightly")                        this.woundPenalty = -1;
-    else if (this.woundState === "seriously" ||
-             this.woundState === "mortally")                       this.woundPenalty = -2;
-    else                                                           this.woundPenalty = 0;
+    Object.assign(this, computeWoundState(this.characteristics));
   }
 }
 
@@ -124,30 +136,8 @@ export class CreatureData extends foundry.abstract.TypeDataModel {
   }
 
   prepareDerivedData() {
-    const table = CONFIG.CEPHEUS.dmByValue;
-    for (const char of Object.values(this.characteristics)) {
-      char.current = Math.max(0, char.max - char.damage);
-      char.value   = char.current;
-      char.dm = table[Math.clamp(char.current, 0, table.length - 1)];
-      char.isDamaged = char.damage > 0;
-      char.isDown = char.current === 0;
-    }
-    const phys = ["str", "dex", "end"];
-    const downCount  = phys.filter(k => this.characteristics[k]?.current === 0).length;
-    const anyDamaged = Object.values(this.characteristics).some(c => c.damage > 0);
-    const endDown    = this.characteristics.end?.current === 0;
-
-    if      (downCount >= 3)             this.woundState = "dead";
-    else if (downCount === 2 && endDown) this.woundState = "dead";
-    else if (downCount === 2)            this.woundState = "mortally";
-    else if (downCount === 1)            this.woundState = "seriously";
-    else if (anyDamaged)                 this.woundState = "lightly";
-    else                                 this.woundState = "healthy";
-
-    if      (this.woundState === "lightly")   this.woundPenalty = -1;
-    else if (this.woundState === "seriously" ||
-             this.woundState === "mortally")  this.woundPenalty = -2;
-    else                                       this.woundPenalty = 0;
+    computeCharacteristicDerived(this.characteristics);
+    Object.assign(this, computeWoundState(this.characteristics));
   }
 }
 
@@ -176,6 +166,16 @@ export class ShipData extends foundry.abstract.TypeDataModel {
       cargoUsed:      new fields.NumberField({ required: true, integer: true, min: 0, initial: 0 }),
       crewMin:        new fields.NumberField({ required: true, integer: true, min: 0, initial: 1 }),
       credits:        new fields.NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+      // Space combat subsystem damage tracks (SRD p.159-161), each 0-3 tiers.
+      // Turret/Bay hits are tracked per-weapon-component instead (see
+      // ShipComponentData) since a ship can have several of each.
+      sensorsHits:    new fields.NumberField({ required: true, integer: true, min: 0, max: 3, initial: 0 }),
+      mDriveHits:     new fields.NumberField({ required: true, integer: true, min: 0, max: 3, initial: 0 }),
+      jDriveHits:     new fields.NumberField({ required: true, integer: true, min: 0, max: 3, initial: 0 }),
+      powerPlantHits: new fields.NumberField({ required: true, integer: true, min: 0, max: 3, initial: 0 }),
+      bridgeHits:     new fields.NumberField({ required: true, integer: true, min: 0, max: 3, initial: 0 }),
+      fuelHits:       new fields.NumberField({ required: true, integer: true, min: 0, max: 3, initial: 0 }),
+      holdHits:       new fields.NumberField({ required: true, integer: true, min: 0, max: 3, initial: 0 }),
       notes:          new fields.HTMLField({ initial: "" }),
     };
   }
@@ -186,5 +186,8 @@ export class ShipData extends foundry.abstract.TypeDataModel {
     // Power plant fuel consumption: rating × 1% of displacement per 4 weeks
     this.fuelPerMonth  = this.powerPlant * (this.displacement * 0.01);
     this.freeCargo     = Math.max(0, this.cargoCapacity - this.cargoUsed);
+    // Space Combat Hit Location table uses a separate column for vessels
+    // under 100 tons (SRD p.159).
+    this.isSmallCraft  = this.displacement < 100;
   }
 }
