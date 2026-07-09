@@ -1,0 +1,56 @@
+<section class="tab ship-components" data-group="primary" data-tab="components">
+
+  <div class="tab-controls flexrow">
+    <div class="component-totals">
+      <span>{{localize "CEPHEUS.TonnageUsed"}}: <strong>{{usedTonnage}}T</strong></span>
+      <span>{{localize "CEPHEUS.PowerUsed"}}: <strong>{{usedPower}}</strong></span>
+    </div>
+    <button type="button" data-action="createComponent">
+      <i class="fas fa-plus"></i> {{localize "CEPHEUS.AddComponent"}}
+    </button>
+  </div>
+
+  <table class="components-table">
+    <thead>
+      <tr>
+        <th>{{localize "CEPHEUS.ComponentName"}}</th>
+        <th>{{localize "CEPHEUS.Tonnage"}}</th>
+        <th>{{localize "CEPHEUS.PowerRequired"}}</th>
+        <th>{{localize "CEPHEUS.Cost"}}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each components as |item|}}
+        <tr class="component-row" data-item-id="{{item.id}}">
+          <td class="component-name">
+            <button type="button" class="item-name-btn" data-action="editItem" data-item-id="{{item.id}}">
+              {{item.name}}
+            </button>
+            {{#if item.system.componentType}}
+              <span class="component-type-tag">{{item.system.componentType}}</span>
+            {{/if}}
+          </td>
+          <td class="component-tonnage">{{item.system.tonnage}}T</td>
+          <td class="component-power">{{item.system.powerRequired}}</td>
+          <td class="component-cost">Cr{{item.system.cost}}</td>
+          <td class="item-controls">
+            <button type="button" data-action="editItem" data-item-id="{{item.id}}"
+                    title="{{localize 'CEPHEUS.Edit'}}">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" data-action="deleteItem" data-item-id="{{item.id}}"
+                    title="{{localize 'CEPHEUS.Delete'}}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      {{else}}
+        <tr>
+          <td colspan="5" class="empty-row">{{localize "CEPHEUS.NoComponents"}}</td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+</section>

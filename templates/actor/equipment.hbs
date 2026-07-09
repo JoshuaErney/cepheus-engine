@@ -1,0 +1,84 @@
+<section class="tab equipment" data-group="primary" data-tab="equipment">
+
+  {{!-- Weapons --}}
+  <div class="items-section">
+    <div class="section-header flexrow">
+      <h3>{{localize "CEPHEUS.Weapons"}}</h3>
+      <button type="button" data-action="createItem" data-type="weapon">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+    <ol class="items-list weapons-list">
+      {{#each weapons as |item|}}
+        <li class="item-row weapon-row flexrow" data-item-id="{{item.id}}">
+          <span class="item-name">{{item.name}}</span>
+          <span class="item-detail weapon-dmg" title="{{localize 'CEPHEUS.Damage'}}">{{item.system.damage}}</span>
+          <span class="item-detail weapon-range" title="{{localize 'CEPHEUS.Range'}}">{{item.system.range}}</span>
+          <div class="item-controls">
+            <button type="button" data-action="rollAttack" data-item-id="{{item.id}}"
+                    title="{{localize 'CEPHEUS.RollAttack'}} (Shift for difficulty)">
+              <i class="fas fa-dice-d6"></i>
+            </button>
+            <button type="button" data-action="rollDamage" data-item-id="{{item.id}}"
+                    title="{{localize 'CEPHEUS.RollDamage'}}">
+              <i class="fas fa-burst"></i>
+            </button>
+            <button type="button" data-action="editItem" data-item-id="{{item.id}}"><i class="fas fa-edit"></i></button>
+            <button type="button" data-action="deleteItem" data-item-id="{{item.id}}"><i class="fas fa-trash"></i></button>
+          </div>
+        </li>
+      {{else}}
+        <li class="empty-row">{{localize "CEPHEUS.None"}}</li>
+      {{/each}}
+    </ol>
+  </div>
+
+  {{!-- Armor --}}
+  <div class="items-section">
+    <div class="section-header flexrow">
+      <h3>{{localize "CEPHEUS.Armor"}}</h3>
+      <button type="button" data-action="createItem" data-type="armor">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+    <ol class="items-list">
+      {{#each armor as |item|}}
+        <li class="item-row flexrow" data-item-id="{{item.id}}">
+          <span class="item-name">{{item.name}}</span>
+          <span class="item-detail">{{localize "CEPHEUS.Protection"}}: {{item.system.protection}}</span>
+          <div class="item-controls">
+            <button type="button" data-action="editItem" data-item-id="{{item.id}}"><i class="fas fa-edit"></i></button>
+            <button type="button" data-action="deleteItem" data-item-id="{{item.id}}"><i class="fas fa-trash"></i></button>
+          </div>
+        </li>
+      {{else}}
+        <li class="empty-row">{{localize "CEPHEUS.None"}}</li>
+      {{/each}}
+    </ol>
+  </div>
+
+  {{!-- Equipment --}}
+  <div class="items-section">
+    <div class="section-header flexrow">
+      <h3>{{localize "CEPHEUS.Equipment"}}</h3>
+      <button type="button" data-action="createItem" data-type="equipment">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+    <ol class="items-list">
+      {{#each equipment as |item|}}
+        <li class="item-row flexrow" data-item-id="{{item.id}}">
+          <span class="item-name">{{item.name}}</span>
+          <span class="item-detail">TL{{item.system.tl}}</span>
+          <div class="item-controls">
+            <button type="button" data-action="editItem" data-item-id="{{item.id}}"><i class="fas fa-edit"></i></button>
+            <button type="button" data-action="deleteItem" data-item-id="{{item.id}}"><i class="fas fa-trash"></i></button>
+          </div>
+        </li>
+      {{else}}
+        <li class="empty-row">{{localize "CEPHEUS.None"}}</li>
+      {{/each}}
+    </ol>
+  </div>
+
+</section>

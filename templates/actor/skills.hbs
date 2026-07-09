@@ -1,0 +1,57 @@
+<section class="tab skills" data-group="primary" data-tab="skills">
+  <div class="tab-controls flexrow">
+    <button type="button" class="create-skill" data-action="createItem" data-type="skill">
+      <i class="fas fa-plus"></i> {{localize "CEPHEUS.AddSkill"}}
+    </button>
+  </div>
+
+  <ol class="skills-list">
+    {{#each skills as |skill|}}
+      <li class="skill-row flexrow {{#if skill.system.psionic}}psionic-skill{{/if}}"
+          data-item-id="{{skill.id}}">
+
+        {{#if skill.system.psionic}}
+          {{!-- Psionic talent: use-power roll button --}}
+          <button type="button"
+                  class="skill-name psi-roll"
+                  data-action="rollPsionic"
+                  data-item-id="{{skill.id}}"
+                  title="{{localize 'CEPHEUS.PsiRollHint'}}">
+            <i class="fas fa-brain"></i> {{skill.name}}
+          </button>
+        {{else}}
+          {{!-- Normal skill roll --}}
+          <button type="button"
+                  class="skill-name"
+                  data-action="rollSkill"
+                  data-item-id="{{skill.id}}">
+            {{skill.name}}
+          </button>
+        {{/if}}
+
+        <span class="skill-level">{{skill.system.level}}</span>
+
+        {{#if skill.system.psionic}}
+          <span class="skill-char psi-cost-tag">PSI-{{skill.system.costPsi}}</span>
+        {{else}}
+          <span class="skill-char">
+            {{localize (lookup ../charConfig skill.system.characteristic)}}
+          </span>
+        {{/if}}
+
+        <div class="item-controls">
+          <button type="button" data-action="editItem" data-item-id="{{skill.id}}"
+                  title="{{localize 'CEPHEUS.Edit'}}">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button type="button" data-action="deleteItem" data-item-id="{{skill.id}}"
+                  title="{{localize 'CEPHEUS.Delete'}}">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </li>
+    {{else}}
+      <li class="empty-row">{{localize "CEPHEUS.NoSkills"}}</li>
+    {{/each}}
+  </ol>
+</section>

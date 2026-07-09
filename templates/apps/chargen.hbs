@@ -1,0 +1,320 @@
+<div class="chargen-wizard flexrow">
+
+  {{!-- Left: log ──────────────────────────────────────────────────────── --}}
+  <aside class="chargen-log">
+    <h4>Log</h4>
+    {{#each log}}
+      <p class="log-entry">{{this}}</p>
+    {{else}}
+      <p class="log-empty">—</p>
+    {{/each}}
+  </aside>
+
+  {{!-- Right: step content ────────────────────────────────────────────── --}}
+  <div class="chargen-content">
+
+    {{!────────── Step 1: characteristics ─────────────────────────────── --}}
+    {{#if (eq step "characteristics")}}
+      <h2 class="step-title">Step 1 — Characteristics</h2>
+      <p class="hint">Roll 2D6 for each characteristic or enter values manually.</p>
+      <div class="char-roll-grid">
+        {{#each charsDisplay}}
+          <div class="char-roll-box">
+            <label>{{abbr}}</label>
+            <input type="number" data-char="{{key}}" value="{{value}}" min="1" max="15" />
+            <button type="button" data-action="rollChar" data-char="{{key}}" title="Roll 2D6">
+              <i class="fas fa-dice"></i>
+            </button>
+          </div>
+        {{/each}}
+      </div>
+      <div class="step-actions">
+        <button type="button" data-action="rollAll">
+          <i class="fas fa-dice-six"></i> Roll All (2D6 each)
+        </button>
+        <button type="button" data-action="goToCareer" class="primary-btn">
+          Next: Choose Career →
+        </button>
+      </div>
+    {{/if}}
+
+    {{!────────── Step 2: career ──────────────────────────────────────── --}}
+    {{#if (eq step "career")}}
+      <h2 class="step-title">Step 2 — Choose Career</h2>
+      <div class="career-grid">
+        {{#each careers}}
+          <button type="button"
+                  class="career-card {{#if (eq this.id ../selectedCareerId)}}selected{{/if}}"
+                  data-action="selectCareer"
+                  data-career="{{id}}">
+            <span class="career-name">{{name}}</span>
+            {{#if qualification}}
+              <span class="career-qual">{{qualification.char}} {{qualification.target}}+</span>
+            {{else}}
+              <span class="career-qual auto">Auto</span>
+            {{/if}}
+          </button>
+        {{/each}}
+      </div>
+      {{#each careers}}
+        {{#if (eq this.id ../selectedCareerId)}}
+          <p class="career-desc">{{description}}</p>
+        {{/if}}
+      {{/each}}
+      <div class="step-actions">
+        <button type="button" data-action="enterCareer" class="primary-btn"
+                {{#unless selectedCareerId}}disabled{{/unless}}>
+          Enter Career →
+        </button>
+      </div>
+    {{/if}}
+
+    {{!────────── Step 3: terms ───────────────────────────────────────── --}}
+    {{#if (eq step "terms")}}
+      <h2 class="step-title">Term {{termState.num}} — {{career.name}}</h2>
+      <p class="term-status">
+        Terms served: <strong>{{termsServed}}</strong> &nbsp;|&nbsp;
+        Rank: <strong>{{lookup career.rankTitles rank}}</strong>
+        {{#if commissioned}}<span class="badge-commissioned">Commissioned</span>{{/if}}
+      </p>
+
+      {{!-- Survival roll --}}
+      {{#unless termState.survivalDone}}
+        <div class="step-actions">
+          <button type="button" data-action="rollSurvival" class="primary-btn">
+            <i class="fas fa-dice-d6"></i>
+            Roll Survival ({{career.survival.char}} {{career.survival.target}}+)
+          </button>
+        </div>
+      {{/unless}}
+
+      {{#if termState.survivalDone}}
+
+        {{!-- Skill picks --}}
+        {{#if termState.skillsLeft}}
+          <div class="skill-picks">
+            <p class="picks-remaining">Skill picks remaining: <strong>{{termState.skillsLeft}}</strong></p>
+
+            {{#if skillTables.personal}}
+              <div class="skill-table">
+                <h5>Personal Development</h5>
+                <div class="skill-table-entries">
+                  {{#each skillTables.personal}}
+                    <button type="button" class="skill-pick-btn"
+                            data-action="pickSkill" data-skill="{{label}}">{{label}}</button>
+                  {{/each}}
+                </div>
+              </div>
+            {{/if}}
+
+            {{#if skillTables.service}}
+              <div class="skill-table">
+                <h5>Service Skills</h5>
+                <div class="skill-table-entries">
+                  {{#each skillTables.service}}
+                    <button type="button" class="skill-pick-btn"
+                            data-action="pickSkill" data-skill="{{label}}">{{label}}</button>
+                  {{/each}}
+                </div>
+              </div>
+            {{/if}}
+
+            {{#if skillTables.advanced}}
+              <div class="skill-table">
+                <h5>Advanced Education (EDU 8+)</h5>
+                <div class="skill-table-entries">
+                  {{#each skillTables.advanced}}
+                    <button type="button" class="skill-pick-btn"
+                            data-action="pickSkill" data-skill="{{label}}">{{label}}</button>
+                  {{/each}}
+                </div>
+              </div>
+            {{/if}}
+
+            {{#if skillTables.specialist}}
+              <div class="skill-table">
+                <h5>Specialist Skills</h5>
+                <div class="skill-table-entries">
+                  {{#each skillTables.specialist}}
+                    <button type="button" class="skill-pick-btn"
+                            data-action="pickSkill" data-skill="{{label}}">{{label}}</button>
+                  {{/each}}
+                </div>
+              </div>
+            {{/if}}
+          </div>
+        {{/if}}
+
+        {{!-- After all skills picked: roll advancement or continue --}}
+        {{#unless termState.skillsLeft}}
+          {{#if career.advancement}}
+            {{#unless termState.advanceDone}}
+              <div class="step-actions">
+                <button type="button" data-action="rollAdvancement">
+                  <i class="fas fa-dice"></i>
+                  Roll Advancement ({{career.advancement.char}} {{career.advancement.target}}+)
+                </button>
+              </div>
+            {{/unless}}
+          {{/if}}
+
+          {{!-- Reenlistment: always rolled once skills/advancement are resolved --}}
+          {{#if readyForReenlistment}}
+            {{#unless termState.reenlistDone}}
+              <div class="step-actions">
+                <button type="button" data-action="rollReenlistment" class="primary-btn">
+                  <i class="fas fa-dice"></i>
+                  Roll Reenlistment ({{career.reenlistment}}+)
+                </button>
+              </div>
+            {{/unless}}
+
+            {{#if termState.reenlistDone}}
+              <div class="step-actions">
+                {{#if (eq termState.reenlistOutcome "forced-continue")}}
+                  <button type="button" data-action="nextTerm" class="primary-btn">
+                    Serve Another Term (Forced — Natural 12) →
+                  </button>
+                {{/if}}
+
+                {{#if (eq termState.reenlistOutcome "forced-retire")}}
+                  <button type="button" data-action="endCareer" class="primary-btn">
+                    Retire (Term Limit Reached) →
+                  </button>
+                {{/if}}
+
+                {{#if (eq termState.reenlistOutcome "forced-out")}}
+                  <button type="button" data-action="endCareer" class="primary-btn">
+                    Muster Out (Reenlistment Failed) →
+                  </button>
+                {{/if}}
+
+                {{#if (eq termState.reenlistOutcome "choice")}}
+                  <button type="button" data-action="nextTerm" class="primary-btn">
+                    Serve Another Term →
+                  </button>
+                  <button type="button" data-action="endCareer">
+                    Muster Out
+                  </button>
+                {{/if}}
+              </div>
+            {{/if}}
+          {{/if}}
+        {{/unless}}
+      {{/if}}
+    {{/if}}
+
+    {{!────────── Step 4: musterout ──────────────────────────────────── --}}
+    {{#if (eq step "musterout")}}
+      <h2 class="step-title">Muster Out</h2>
+      <p class="hint">
+        Picks remaining: <strong>{{musterLeft}}</strong> &nbsp;|&nbsp;
+        Cash rolls left: <strong>{{cashRollsLeft}}</strong> (max 3 per character)
+      </p>
+
+      {{#if musterLeft}}
+        <div class="muster-tables flexrow">
+          <div class="muster-table">
+            <h4>Cash Table</h4>
+            {{#each career.cash}}
+              <div class="muster-entry">{{inc @index}}: Cr{{this}}</div>
+            {{/each}}
+            <button type="button" data-action="rollMuster" data-type="cash"
+                    {{#unless cashRollsLeft}}disabled{{/unless}}>
+              <i class="fas fa-dice"></i> Roll Cash
+            </button>
+          </div>
+          <div class="muster-table">
+            <h4>Benefits Table</h4>
+            {{#each career.benefits}}
+              <div class="muster-entry">{{inc @index}}: {{this}}</div>
+            {{/each}}
+            <button type="button" data-action="rollMuster" data-type="benefit">
+              <i class="fas fa-dice"></i> Roll Benefit
+            </button>
+          </div>
+        </div>
+      {{else}}
+        <p>All muster-out picks used.</p>
+        <div class="step-actions">
+          <button type="button" data-action="applyCharacter" class="primary-btn">
+            <i class="fas fa-check"></i> Apply to Character
+          </button>
+        </div>
+      {{/if}}
+    {{/if}}
+
+    {{!────────── Step 5: review ─────────────────────────────────────── --}}
+    {{#if (eq step "review")}}
+      <h2 class="step-title">Review</h2>
+      <p>
+        {{career.name}} — {{lookup career.rankTitles rank}},
+        {{termsServed}} term{{#if (eq termsServed 1)}}{{else}}s{{/if}} &nbsp;|&nbsp;
+        Age: <strong>{{age}}</strong> &nbsp;|&nbsp;
+        Credits: <strong>Cr{{credits}}</strong>
+        {{#if pension}}
+          &nbsp;|&nbsp; Pension: <strong>Cr{{pension}}/year</strong>
+        {{/if}}
+      </p>
+
+      <div class="review-grid">
+        <div class="review-section final-details">
+          <h4>Final Details</h4>
+          <div class="form-group">
+            <label>{{localize "CEPHEUS.ActorName"}}</label>
+            <input type="text" name="finalName" value="{{actorName}}" />
+          </div>
+          <div class="form-group">
+            <label>{{localize "CEPHEUS.Gender"}}</label>
+            <input type="text" name="finalGender" value="" />
+          </div>
+          <div class="form-group">
+            <label>{{localize "CEPHEUS.Appearance"}}</label>
+            <textarea name="finalAppearance" placeholder="Physical description..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>{{localize "CEPHEUS.PersonalGoals"}}</label>
+            <textarea name="finalPersonalGoals" placeholder="What drives this character..."></textarea>
+          </div>
+        </div>
+
+        <div class="review-section">
+          <h4>Characteristics</h4>
+          <div class="char-roll-grid">
+            {{#each finalChars}}
+              <div class="char-roll-box">
+                <label>{{abbr}}</label>
+                <span class="char-final-val">{{value}}</span>
+              </div>
+            {{/each}}
+          </div>
+        </div>
+
+        <div class="review-section">
+          <h4>Skills Gained</h4>
+          {{#each gainedSkillList}}
+            <div class="review-skill">{{name}} {{level}}</div>
+          {{else}}
+            <p class="hint">No skills.</p>
+          {{/each}}
+        </div>
+
+        {{#if benefits.length}}
+          <div class="review-section">
+            <h4>Benefits</h4>
+            {{#each benefits}}
+              <div class="review-benefit">{{this}}</div>
+            {{/each}}
+          </div>
+        {{/if}}
+      </div>
+
+      <div class="step-actions">
+        <button type="button" data-action="applyCharacter" class="primary-btn">
+          <i class="fas fa-user-check"></i> Apply to {{actorName}}
+        </button>
+      </div>
+    {{/if}}
+
+  </div>{{!-- .chargen-content --}}
+</div>

@@ -1,0 +1,43 @@
+<header class="sheet-header flexrow">
+  <img class="actor-portrait"
+       src="{{document.img}}"
+       alt="{{document.name}}"
+       data-action="showPortraitArtwork" />
+
+  <div class="header-fields">
+    <h1 class="charname">
+      {{#if editable}}
+        <input type="text" name="name" value="{{document.name}}"
+               placeholder="{{localize 'CEPHEUS.ActorName'}}" />
+      {{else}}
+        {{document.name}}
+      {{/if}}
+    </h1>
+
+    <div class="header-row flexrow">
+      <div class="creature-type-badge">
+        {{localize (concat "CEPHEUS.Behavior" behaviorType)}}
+      </div>
+      <div class="wound-badge wound-{{woundState}}">
+        {{localize (concat "CEPHEUS.Wound" woundState)}}
+      </div>
+    </div>
+
+    <div class="header-meta flexrow">
+      <div class="meta-item damage-controls">
+        <button type="button" class="dmg-btn" data-action="applyDamage"
+                title="{{localize 'CEPHEUS.ApplyDamage'}}">
+          <i class="fas fa-heart-broken"></i> {{localize "CEPHEUS.Damage"}}
+        </button>
+        <button type="button" class="dmg-btn heal" data-action="healDamage"
+                title="{{localize 'CEPHEUS.HealDamage'}}">
+          <i class="fas fa-medkit"></i> {{localize "CEPHEUS.Heal"}}
+        </button>
+        <button type="button" class="dmg-btn recover" data-action="fullRecovery"
+                title="{{localize 'CEPHEUS.FullRecovery'}}">
+          <i class="fas fa-undo"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>

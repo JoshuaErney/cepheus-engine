@@ -1,0 +1,85 @@
+<section class="tab characteristics" data-group="primary" data-tab="characteristics">
+  <div class="characteristics-grid">
+    {{#each characteristics as |char key|}}
+      <div class="characteristic {{#if char.isDown}}char-down{{else if char.isDamaged}}char-damaged{{/if}}">
+        <label class="char-label">{{localize (lookup ../charConfig key)}}</label>
+
+        <div class="char-values">
+          {{#if char.isDamaged}}
+            <span class="char-base" title="{{localize 'CEPHEUS.BaseValue'}}">{{char.max}}</span>
+            <span class="char-separator">→</span>
+            <span class="char-current {{#if char.isDown}}char-zero{{/if}}">{{char.current}}</span>
+          {{else}}
+            {{#if ../editable}}
+              <input type="number"
+                     name="system.characteristics.{{key}}.max"
+                     value="{{char.max}}"
+                     min="0" max="15"
+                     class="char-input" />
+            {{else}}
+              <span class="char-current">{{char.max}}</span>
+            {{/if}}
+          {{/if}}
+        </div>
+
+        {{#if char.isDamaged}}
+          <div class="char-damage-track">
+            <span class="damage-label">−{{char.damage}}</span>
+            {{#if ../editable}}
+              <input type="number"
+                     name="system.characteristics.{{key}}.max"
+                     value="{{char.max}}"
+                     min="0" max="15"
+                     class="char-base-edit"
+                     title="{{localize 'CEPHEUS.BaseValue'}}" />
+            {{/if}}
+          </div>
+        {{/if}}
+
+        <button type="button"
+                class="char-roll"
+                data-action="rollCharacteristic"
+                data-characteristic="{{key}}"
+                {{#if char.isDown}}disabled{{/if}}>
+          DM {{cepheusSign char.dm}}
+        </button>
+      </div>
+    {{/each}}
+  </div>
+
+  {{!-- PSI tracker ──────────────────────────────────────────────────────── --}}
+  <div class="psi-tracker {{#if psi.isDamaged}}psi-spent{{/if}} {{#if psi.isDown}}psi-empty{{/if}}">
+    <span class="psi-label">{{localize "CEPHEUS.CharPsi"}}</span>
+
+    {{#if (eq psi.value 0)}}
+      {{!-- Undiscovered --}}
+      <span class="psi-undiscovered">{{localize "CEPHEUS.PsiUndiscovered"}}</span>
+      {{#if editable}}
+        <button type="button" class="psi-test-btn" data-action="testPsionics"
+                title="{{localize 'CEPHEUS.PsiTestTitle'}}">
+          <i class="fas fa-brain"></i> {{localize "CEPHEUS.PsiTestBtn"}}
+        </button>
+      {{/if}}
+    {{else}}
+      {{!-- PSI points track --}}
+      <div class="psi-points">
+        <span class="psi-current">{{psi.current}}</span>
+        <span class="psi-sep">/</span>
+        {{#if editable}}
+          <input type="number" name="system.psi.value" value="{{psi.value}}"
+                 min="0" max="15" class="psi-max-input" />
+        {{else}}
+          <span class="psi-max">{{psi.value}}</span>
+        {{/if}}
+      </div>
+      <span class="psi-dm">DM {{cepheusSign psi.dm}}</span>
+      {{#if editable}}
+        <button type="button" class="psi-recover-btn" data-action="recoverPsi"
+                title="{{localize 'CEPHEUS.PsiRecover'}}" {{#unless psi.isDamaged}}disabled{{/unless}}>
+          <i class="fas fa-brain"></i> {{localize "CEPHEUS.Recover"}}
+        </button>
+      {{/if}}
+    {{/if}}
+  </div>
+
+</section>

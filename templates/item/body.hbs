@@ -1,0 +1,180 @@
+<section class="item-body">
+
+  {{!-- SKILL --}}
+  {{#if (eq itemType "skill")}}
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.SkillLevel"}}</label>
+        <input type="number" name="system.level" value="{{system.level}}" min="0" max="5" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.LinkedCharacteristic"}}</label>
+        <select name="system.characteristic" {{#unless editable}}disabled{{/unless}}>
+          {{#each charOptions as |label key|}}
+            <option value="{{key}}" {{#if (eq key ../system.characteristic)}}selected{{/if}}>
+              {{localize label}}
+            </option>
+          {{/each}}
+        </select>
+      </div>
+    </div>
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.PsionicSkill"}}</label>
+        <input type="checkbox" name="system.psionic" {{#if system.psionic}}checked{{/if}} {{#unless editable}}disabled{{/unless}} />
+      </div>
+      {{#if system.psionic}}
+        <div class="form-group">
+          <label>{{localize "CEPHEUS.PsiCost"}}</label>
+          <input type="number" name="system.costPsi" value="{{system.costPsi}}" min="0" {{#unless editable}}disabled{{/unless}} />
+        </div>
+      {{/if}}
+    </div>
+  {{/if}}
+
+  {{!-- WEAPON --}}
+  {{#if (eq itemType "weapon")}}
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Damage"}}</label>
+        <input type="text" name="system.damage" value="{{system.damage}}" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Range"}}</label>
+        <input type="text" name="system.range" value="{{system.range}}" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.LinkedSkill"}}</label>
+        <input type="text" name="system.skill" value="{{system.skill}}" {{#unless editable}}disabled{{/unless}} />
+      </div>
+    </div>
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Magazine"}}</label>
+        <input type="number" name="system.magazine" value="{{system.magazine}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.TechLevel"}}</label>
+        <input type="number" name="system.tl" value="{{system.tl}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Cost"}}</label>
+        <input type="number" name="system.cost" value="{{system.cost}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Mass"}}</label>
+        <input type="number" name="system.mass" value="{{system.mass}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+    </div>
+  {{/if}}
+
+  {{!-- ARMOR --}}
+  {{#if (eq itemType "armor")}}
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Protection"}}</label>
+        <input type="number" name="system.protection" value="{{system.protection}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.ProtectionLaser"}}</label>
+        <input type="number" name="system.protectionLaser" value="{{system.protectionLaser}}" min="0" placeholder="{{localize 'CEPHEUS.Protection'}}" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.TechLevel"}}</label>
+        <input type="number" name="system.tl" value="{{system.tl}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Cost"}}</label>
+        <input type="number" name="system.cost" value="{{system.cost}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Mass"}}</label>
+        <input type="number" name="system.mass" value="{{system.mass}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.SkillRequired"}}</label>
+        <input type="text" name="system.skillRequired" value="{{system.skillRequired}}" {{#unless editable}}disabled{{/unless}} />
+      </div>
+    </div>
+  {{/if}}
+
+  {{!-- EQUIPMENT --}}
+  {{#if (eq itemType "equipment")}}
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.TechLevel"}}</label>
+        <input type="number" name="system.tl" value="{{system.tl}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Cost"}}</label>
+        <input type="number" name="system.cost" value="{{system.cost}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Mass"}}</label>
+        <input type="number" name="system.mass" value="{{system.mass}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+    </div>
+  {{/if}}
+
+  {{!-- AUGMENT --}}
+  {{#if (eq itemType "augment")}}
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.LinkedCharacteristic"}}</label>
+        <select name="system.characteristic" {{#unless editable}}disabled{{/unless}}>
+          <option value="">—</option>
+          {{#each charOptions as |label key|}}
+            <option value="{{key}}" {{#if (eq key ../system.characteristic)}}selected{{/if}}>
+              {{localize label}}
+            </option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Bonus"}}</label>
+        <input type="number" name="system.bonus" value="{{system.bonus}}" {{#unless editable}}disabled{{/unless}} />
+      </div>
+    </div>
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.TechLevel"}}</label>
+        <input type="number" name="system.tl" value="{{system.tl}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Cost"}}</label>
+        <input type="number" name="system.cost" value="{{system.cost}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+    </div>
+  {{/if}}
+
+  {{!-- SHIP COMPONENT --}}
+  {{#if (eq itemType "shipComponent")}}
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.ComponentType"}}</label>
+        <input type="text" name="system.componentType" value="{{system.componentType}}" {{#unless editable}}disabled{{/unless}} />
+      </div>
+    </div>
+    <div class="form-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Tonnage"}}</label>
+        <input type="number" name="system.tonnage" value="{{system.tonnage}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.PowerRequired"}}</label>
+        <input type="number" name="system.powerRequired" value="{{system.powerRequired}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Cost"}}</label>
+        <input type="number" name="system.cost" value="{{system.cost}}" min="0" {{#unless editable}}disabled{{/unless}} />
+      </div>
+    </div>
+  {{/if}}
+
+  {{!-- Description (all types) --}}
+  <div class="form-group description">
+    <label>{{localize "CEPHEUS.Description"}}</label>
+    {{editor system.description target="system.description" editable=editable}}
+  </div>
+
+</section>

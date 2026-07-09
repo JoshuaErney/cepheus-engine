@@ -1,0 +1,84 @@
+<header class="sheet-header flexrow">
+  <img class="actor-portrait"
+       src="{{document.img}}"
+       alt="{{document.name}}"
+       data-action="showPortraitArtwork" />
+
+  <div class="header-fields">
+    <h1 class="charname">
+      {{#if editable}}
+        <input type="text" name="name" value="{{document.name}}"
+               placeholder="{{localize 'CEPHEUS.ActorName'}}" />
+      {{else}}
+        {{document.name}}
+      {{/if}}
+    </h1>
+
+    <div class="header-row flexrow">
+      <div class="upp-block">
+        <span class="upp-label">{{localize "CEPHEUS.UPP"}}</span>
+        <span class="upp-value">{{upp}}</span>
+      </div>
+
+      <div class="wound-badge wound-{{woundState}}">
+        {{localize (concat "CEPHEUS.Wound" woundState)}}
+        {{#if woundPenalty}}<span class="wound-penalty">({{cepheusSign woundPenalty}} all checks)</span>{{/if}}
+      </div>
+    </div>
+
+    <div class="header-meta flexrow">
+      {{#if document.system.age}}
+        <div class="meta-item">
+          <label>{{localize "CEPHEUS.Age"}}</label>
+          {{#if editable}}
+            <input type="number" name="system.age" value="{{document.system.age}}" min="18" />
+          {{else}}
+            <span>{{document.system.age}}</span>
+          {{/if}}
+        </div>
+      {{/if}}
+
+      <div class="meta-item">
+        <label>{{localize "CEPHEUS.Credits"}}</label>
+        {{#if editable}}
+          <input type="number" name="system.credits" value="{{credits}}" min="0" />
+        {{else}}
+          <span>{{credits}}</span>
+        {{/if}}
+      </div>
+
+      {{#if document.system.pension}}
+        <div class="meta-item">
+          <label>{{localize "CEPHEUS.Pension"}}</label>
+          {{#if editable}}
+            <input type="number" name="system.pension" value="{{document.system.pension}}" min="0" />
+          {{else}}
+            <span>{{document.system.pension}}</span>
+          {{/if}}
+        </div>
+      {{/if}}
+
+      <div class="meta-item">
+        <button type="button" class="chargen-btn" data-action="startChargen"
+                title="{{localize 'CEPHEUS.ChargenTitle'}}">
+          <i class="fas fa-id-card"></i> {{localize "CEPHEUS.Chargen"}}
+        </button>
+      </div>
+
+      <div class="meta-item damage-controls">
+        <button type="button" class="dmg-btn" data-action="applyDamage"
+                title="{{localize 'CEPHEUS.ApplyDamage'}}">
+          <i class="fas fa-heart-broken"></i> {{localize "CEPHEUS.Damage"}}
+        </button>
+        <button type="button" class="dmg-btn heal" data-action="healDamage"
+                title="{{localize 'CEPHEUS.HealDamage'}}">
+          <i class="fas fa-medkit"></i> {{localize "CEPHEUS.Heal"}}
+        </button>
+        <button type="button" class="dmg-btn recover" data-action="fullRecovery"
+                title="{{localize 'CEPHEUS.FullRecovery'}}">
+          <i class="fas fa-undo"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>

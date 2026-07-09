@@ -1,0 +1,90 @@
+<header class="sheet-header flexrow ship-header">
+  <img class="actor-portrait"
+       src="{{document.img}}"
+       alt="{{document.name}}"
+       data-action="showPortraitArtwork" />
+
+  <div class="header-fields">
+    <div class="ship-name-row flexrow">
+      <h1 class="charname">
+        {{#if editable}}
+          <input type="text" name="name" value="{{document.name}}"
+                 placeholder="{{localize 'CEPHEUS.ShipName'}}" />
+        {{else}}
+          {{document.name}}
+        {{/if}}
+      </h1>
+      <div class="ship-class">
+        {{#if editable}}
+          <input type="text" name="system.shipClass" value="{{shipClass}}"
+                 placeholder="{{localize 'CEPHEUS.ShipClass'}}" />
+        {{else}}
+          <span>{{shipClass}}</span>
+        {{/if}}
+      </div>
+    </div>
+
+    <div class="ship-vitals flexrow">
+      {{!-- Hull Points --}}
+      <div class="ship-resource">
+        <label>{{localize "CEPHEUS.HullPoints"}}</label>
+        <div class="resource-track flexrow">
+          {{#if editable}}
+            <input type="number" name="system.hullPoints.value" value="{{hullPoints.value}}" min="0" class="resource-val" />
+            <span class="resource-sep">/</span>
+            <input type="number" name="system.hullPoints.max" value="{{hullPoints.max}}" min="0" class="resource-max" />
+          {{else}}
+            <span class="resource-val">{{hullPoints.value}}</span>
+            <span class="resource-sep">/</span>
+            <span class="resource-max">{{hullPoints.max}}</span>
+          {{/if}}
+        </div>
+      </div>
+
+      {{!-- Structure Points --}}
+      <div class="ship-resource">
+        <label>{{localize "CEPHEUS.StructurePoints"}}</label>
+        <div class="resource-track flexrow">
+          {{#if editable}}
+            <input type="number" name="system.structurePoints.value" value="{{structurePoints.value}}" min="0" class="resource-val" />
+            <span class="resource-sep">/</span>
+            <input type="number" name="system.structurePoints.max" value="{{structurePoints.max}}" min="0" class="resource-max" />
+          {{else}}
+            <span class="resource-val">{{structurePoints.value}}</span>
+            <span class="resource-sep">/</span>
+            <span class="resource-max">{{structurePoints.max}}</span>
+          {{/if}}
+        </div>
+      </div>
+
+      {{!-- Fuel --}}
+      <div class="ship-resource">
+        <label>{{localize "CEPHEUS.Fuel"}}</label>
+        <div class="resource-track flexrow">
+          {{#if editable}}
+            <input type="number" name="system.fuel.value" value="{{fuel.value}}" min="0" class="resource-val" />
+            <span class="resource-sep">/</span>
+            <input type="number" name="system.fuel.capacity" value="{{fuel.capacity}}" min="0" class="resource-max" />
+          {{else}}
+            <span class="resource-val">{{fuel.value}}</span>
+            <span class="resource-sep">/</span>
+            <span class="resource-max">{{fuel.capacity}}</span>
+          {{/if}}
+        </div>
+      </div>
+
+      {{!-- Displacement & Credits --}}
+      <div class="ship-resource">
+        <label>{{localize "CEPHEUS.Displacement"}}</label>
+        <div class="resource-track flexrow">
+          {{#if editable}}
+            <input type="number" name="system.displacement" value="{{displacement}}" min="0" class="resource-val" />
+          {{else}}
+            <span class="resource-val">{{displacement}}</span>
+          {{/if}}
+          <span class="resource-sep">T</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>

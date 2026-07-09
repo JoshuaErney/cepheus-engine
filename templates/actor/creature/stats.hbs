@@ -1,0 +1,116 @@
+<section class="tab creature-stats" data-group="primary" data-tab="stats">
+
+  {{!-- Characteristics (2×2 grid for STR/DEX/END/INT) --}}
+  <div class="characteristics-grid creature-grid">
+    {{#each characteristics as |char key|}}
+      <div class="characteristic {{#if char.isDown}}char-down{{else if char.isDamaged}}char-damaged{{/if}}">
+        <label class="char-label">{{localize (lookup ../charConfig key)}}</label>
+
+        <div class="char-values">
+          {{#if char.isDamaged}}
+            <span class="char-base">{{char.max}}</span>
+            <span class="char-separator">→</span>
+            <span class="char-current {{#if char.isDown}}char-zero{{/if}}">{{char.current}}</span>
+          {{else}}
+            {{#if ../editable}}
+              <input type="number"
+                     name="system.characteristics.{{key}}.max"
+                     value="{{char.max}}"
+                     min="0" max="15"
+                     class="char-input" />
+            {{else}}
+              <span class="char-current">{{char.max}}</span>
+            {{/if}}
+          {{/if}}
+        </div>
+
+        <div class="char-dm">DM {{cepheusSign char.dm}}</div>
+      </div>
+    {{/each}}
+  </div>
+
+  {{!-- Combat Stats ─────────────────────────────────────────────────────── --}}
+  <div class="creature-combat-stats">
+    <div class="stat-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.NaturalArmor"}}</label>
+        {{#if editable}}
+          <input type="number" name="system.armor" value="{{armor}}" min="0" />
+        {{else}}
+          <span class="stat-value">{{armor}}</span>
+        {{/if}}
+      </div>
+
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Speed"}}</label>
+        {{#if editable}}
+          <input type="number" name="system.speed" value="{{speed}}" min="0" />
+        {{else}}
+          <span class="stat-value">{{speed}}m</span>
+        {{/if}}
+      </div>
+    </div>
+
+    <div class="stat-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Instinct"}}</label>
+        {{#if editable}}
+          <input type="text" name="system.instinct" value="{{instinct}}" />
+        {{else}}
+          <span class="stat-value">{{instinct}}</span>
+        {{/if}}
+      </div>
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.Pack"}}</label>
+        {{#if editable}}
+          <input type="text" name="system.pack" value="{{pack}}" />
+        {{else}}
+          <span class="stat-value">{{pack}}</span>
+        {{/if}}
+      </div>
+    </div>
+
+    <div class="stat-row flexrow">
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.AttackDice"}}</label>
+        {{#if editable}}
+          <input type="text" name="system.attackDice" value="{{attackDice}}" />
+        {{else}}
+          <span class="stat-value">{{attackDice}}</span>
+        {{/if}}
+      </div>
+
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.AttackType"}}</label>
+        {{#if editable}}
+          <input type="text" name="system.attackType" value="{{attackType}}"
+                 placeholder="Claws, Bite, etc." />
+        {{else}}
+          <span class="stat-value">{{attackType}}</span>
+        {{/if}}
+      </div>
+      <div class="form-group">
+        <button type="button" data-action="rollAttack"
+                title="{{localize 'CEPHEUS.RollAttack'}}">
+          <i class="fas fa-dice-d6"></i> {{localize "CEPHEUS.RollAttack"}}
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>{{localize "CEPHEUS.BehaviorType"}}</label>
+      {{#if editable}}
+        <select name="system.behaviorType">
+          {{#each behaviorOptions as |label key|}}
+            <option value="{{key}}" {{#if (eq key ../behaviorType)}}selected{{/if}}>
+              {{localize label}}
+            </option>
+          {{/each}}
+        </select>
+      {{else}}
+        <span class="stat-value">{{localize (lookup behaviorOptions behaviorType)}}</span>
+      {{/if}}
+    </div>
+  </div>
+
+</section>

@@ -1,0 +1,75 @@
+{
+  "id": "cepheus-engine",
+  "title": "Cepheus Engine SRD",
+  "description": "A Foundry VTT implementation of the Cepheus Engine System Reference Document, an open-source sci-fi RPG based on Classic Traveller.",
+  "version": "0.1.0",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14"
+  },
+  "authors": [
+    {
+      "name": "Joshua Erney"
+    }
+  ],
+  "esmodules": ["cepheus.mjs"],
+  "styles": ["styles/cepheus.css"],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "documentTypes": {
+    "Actor": {
+      "character": {},
+      "npc": {},
+      "creature": {},
+      "ship": {}
+    },
+    "Item": {
+      "skill": {},
+      "weapon": {},
+      "armor": {},
+      "equipment": {},
+      "augment": {},
+      "shipComponent": {}
+    }
+  },
+  "initiative": "2d6",
+  "primaryTokenAttribute": "characteristics.end",
+  "packs": [
+    {
+      "name": "skills",
+      "label": "Cepheus Engine Skills",
+      "path": "packs/skills",
+      "type": "Item",
+      "system": "cepheus-engine"
+    },
+    {
+      "name": "weapons",
+      "label": "Cepheus Engine Weapons",
+      "path": "packs/weapons",
+      "type": "Item",
+      "system": "cepheus-engine"
+    },
+    {
+      "name": "armor",
+      "label": "Cepheus Engine Armor",
+      "path": "packs/armor",
+      "type": "Item",
+      "system": "cepheus-engine"
+    },
+    {
+      "name": "equipment",
+      "label": "Cepheus Engine Equipment",
+      "path": "packs/equipment",
+      "type": "Item",
+      "system": "cepheus-engine"
+    }
+  ],
+  "url": "",
+  "manifest": "",
+  "download": ""
+}

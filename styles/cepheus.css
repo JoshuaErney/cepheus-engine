@@ -1,0 +1,1348 @@
+/* ============================================================
+   Cepheus Engine SRD — System Stylesheet
+   ============================================================ */
+
+/* Sheet window */
+.cepheus-engine.sheet .window-content {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-family: "Signika", sans-serif;
+}
+
+/* Styled scrollbars */
+.cepheus-engine ::-webkit-scrollbar        { width: 6px; height: 6px; }
+.cepheus-engine ::-webkit-scrollbar-track  { background: #0f1a2e; }
+.cepheus-engine ::-webkit-scrollbar-thumb  { background: #1a5276; border-radius: 3px; }
+.cepheus-engine ::-webkit-scrollbar-thumb:hover { background: #a8d8ea; }
+
+/* ---- Header ---- */
+.cepheus-engine .sheet-header {
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #16213e;
+  border-bottom: 2px solid #0f3460;
+  flex-shrink: 0;
+}
+
+.cepheus-engine .actor-portrait,
+.cepheus-engine .item-icon {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border: 2px solid #1a5276;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(168,216,234,0.15);
+  transition: box-shadow 0.2s ease;
+}
+
+.cepheus-engine .actor-portrait:hover,
+.cepheus-engine .item-icon:hover {
+  box-shadow: 0 0 14px rgba(168,216,234,0.4);
+}
+
+.cepheus-engine .header-fields {
+  flex: 1;
+}
+
+.cepheus-engine .header-fields h1 input,
+.cepheus-engine .header-fields h1 {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #e0e0e0;
+  border: none;
+  background: transparent;
+  width: 100%;
+  margin: 0 0 0.25rem;
+}
+
+.cepheus-engine .header-row {
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.3rem;
+}
+
+.cepheus-engine .upp-block {
+  font-family: monospace;
+  font-size: 1.25rem;
+  letter-spacing: 0.15em;
+  color: #a8d8ea;
+  background: rgba(168,216,234,0.07);
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  padding: 2px 10px;
+}
+
+/* ---- Wound state badge ---- */
+.cepheus-engine .wound-badge {
+  font-size: 0.78rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cepheus-engine .wound-healthy   { background: #1a4a2a; color: #4caf50; border: 1px solid #4caf50; }
+.cepheus-engine .wound-lightly   { background: #3a3a1a; color: #ffc107; border: 1px solid #ffc107; }
+.cepheus-engine .wound-seriously { background: #3a1a1a; color: #ff5722; border: 1px solid #ff5722; }
+.cepheus-engine .wound-mortally  { background: #2a0a0a; color: #f44336; border: 1px solid #f44336; }
+.cepheus-engine .wound-dead      { background: #1a1a1a; color: #9e9e9e; border: 1px solid #9e9e9e; }
+.cepheus-engine .wound-penalty   { font-weight: normal; font-size: 0.72rem; margin-left: 0.3rem; }
+
+/* ---- Damage control buttons in header ---- */
+.cepheus-engine .damage-controls {
+  flex-direction: row !important;
+  gap: 0.4rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.cepheus-engine .dmg-btn {
+  background: #1a1a2e;
+  border: 1px solid #0f3460;
+  color: #7a9cc1;
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cepheus-engine .dmg-btn:hover        { color: #e0e0e0; border-color: #a8d8ea; }
+.cepheus-engine .dmg-btn.heal         { color: #4caf50; border-color: #1a4a2a; }
+.cepheus-engine .dmg-btn.heal:hover   { border-color: #4caf50; }
+.cepheus-engine .dmg-btn.recover      { color: #7a9cc1; }
+
+/* ---- Ship sheet ---- */
+.cepheus-engine.ship .sheet-header.ship-header {
+  align-items: flex-start;
+}
+
+.cepheus-engine .ship-name-row {
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.cepheus-engine .ship-class input,
+.cepheus-engine .ship-class span {
+  font-size: 0.85rem;
+  color: #7a9cc1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #0f3460;
+  padding: 2px 4px;
+}
+
+.cepheus-engine .ship-vitals {
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.cepheus-engine .ship-resource {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.cepheus-engine .ship-resource label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #7a9cc1;
+  letter-spacing: 0.05em;
+}
+
+.cepheus-engine .resource-track {
+  align-items: center;
+  gap: 0.25rem;
+  font-family: monospace;
+}
+
+.cepheus-engine .resource-val,
+.cepheus-engine .resource-max {
+  width: 44px;
+  font-size: 1rem;
+  text-align: center;
+  color: #e0e0e0;
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+
+.cepheus-engine .resource-sep {
+  color: #4a6080;
+  font-size: 1rem;
+}
+
+.cepheus-engine .ship-stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cepheus-engine .ship-section {
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.cepheus-engine .section-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7a9cc1;
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #0f3460;
+}
+
+.cepheus-engine .derived-row {
+  margin-top: 0.4rem;
+}
+
+.cepheus-engine .derived-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #7a9cc1;
+}
+
+.cepheus-engine .derived-stat label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.cepheus-engine .stat-value.derived {
+  color: #a8d8ea;
+  font-style: italic;
+}
+
+/* ---- Components table ---- */
+.cepheus-engine .component-totals {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.82rem;
+  color: #7a9cc1;
+  align-items: center;
+}
+
+.cepheus-engine .component-totals strong {
+  color: #a8d8ea;
+}
+
+.cepheus-engine .components-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.cepheus-engine .components-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #7a9cc1;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #0f3460;
+}
+
+.cepheus-engine .components-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #0f3460;
+  color: #e0e0e0;
+}
+
+.cepheus-engine .component-row:hover td {
+  background: #16213e;
+}
+
+.cepheus-engine .item-name-btn {
+  background: none;
+  border: none;
+  color: #a8d8ea;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+  text-align: left;
+}
+
+.cepheus-engine .item-name-btn:hover {
+  text-decoration: underline;
+}
+
+.cepheus-engine .component-type-tag {
+  font-size: 0.7rem;
+  color: #4a6080;
+  margin-left: 0.4rem;
+}
+
+/* ---- Creature sheet ---- */
+.cepheus-engine.creature .characteristics-grid.creature-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.cepheus-engine .creature-type-badge {
+  font-size: 0.78rem;
+  color: #a8d8ea;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border: 1px solid #0f3460;
+  border-radius: 10px;
+}
+
+.cepheus-engine .creature-combat-stats {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #0f3460;
+}
+
+.cepheus-engine .stat-row {
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+  align-items: flex-end;
+}
+
+.cepheus-engine .stat-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.cepheus-engine .stat-value {
+  font-size: 1rem;
+  color: #e0e0e0;
+}
+
+/* ---- Damaged characteristic states ---- */
+.cepheus-engine .characteristic.char-damaged {
+  border-color: #ff9800;
+  border-top-color: #ff9800;
+}
+.cepheus-engine .characteristic.char-down {
+  border-color: #f44336;
+  border-top-color: #f44336;
+}
+
+.cepheus-engine .char-values {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  margin-bottom: 0.35rem;
+}
+
+.cepheus-engine .char-base {
+  font-size: 1rem;
+  color: #7a9cc1;
+  text-decoration: line-through;
+}
+
+.cepheus-engine .char-separator {
+  font-size: 0.75rem;
+  color: #4a6080;
+}
+
+.cepheus-engine .char-current {
+  font-size: 1.4rem;
+  font-weight: bold;
+  font-family: monospace;
+  color: #ff9800;
+}
+
+.cepheus-engine .char-zero {
+  color: #f44336 !important;
+}
+
+.cepheus-engine .char-damage-track {
+  font-size: 0.75rem;
+  color: #f44336;
+  text-align: center;
+  margin-bottom: 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.cepheus-engine .char-base-edit {
+  width: 38px;
+  font-size: 0.75rem;
+  text-align: center;
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  color: #7a9cc1;
+  border-radius: 2px;
+}
+
+.cepheus-engine .upp-label {
+  margin-right: 0.4rem;
+  color: #7a9cc1;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.cepheus-engine .upp-value {
+  color: #a8d8ea;
+  letter-spacing: 0.1em;
+}
+
+.cepheus-engine .header-meta {
+  gap: 1rem;
+  margin-top: 0.35rem;
+}
+
+.cepheus-engine .meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cepheus-engine .meta-item label {
+  font-size: 0.75rem;
+  color: #7a9cc1;
+  text-transform: uppercase;
+}
+
+.cepheus-engine .meta-item input[type="number"] {
+  width: 70px;
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  color: #e0e0e0;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* ---- Tab navigation ---- */
+.cepheus-engine .tabs {
+  background: #16213e;
+  border-bottom: 1px solid #0f3460;
+  padding: 0 0.5rem;
+  flex-shrink: 0;
+}
+
+.cepheus-engine .tabs .item {
+  color: #7a9cc1;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 3px solid transparent;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.cepheus-engine .tabs .item.active {
+  color: #a8d8ea;
+  border-bottom-color: #a8d8ea;
+  font-weight: 600;
+}
+
+.cepheus-engine .tabs .item:hover:not(.active) {
+  color: #c0dff0;
+  border-bottom-color: #1a5276;
+}
+
+/* ---- Tab panels ---- */
+.cepheus-engine .tab {
+  padding: 0.75rem 1rem;
+  overflow-y: auto;
+}
+
+/* ---- Characteristics grid ---- */
+.cepheus-engine .characteristics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.cepheus-engine .characteristic {
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-top: 3px solid #1a5276;
+  border-radius: 6px;
+  padding: 0.6rem;
+  text-align: center;
+  transition: border-color 0.2s ease;
+}
+
+.cepheus-engine .char-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7a9cc1;
+  margin-bottom: 0.3rem;
+}
+
+.cepheus-engine .char-value-row {
+  justify-content: center;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.35rem;
+}
+
+.cepheus-engine .char-input,
+.cepheus-engine .char-value {
+  width: 48px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  font-family: monospace;
+  text-align: center;
+  color: #e0e0e0;
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  border-radius: 3px;
+}
+
+.cepheus-engine .char-damage {
+  font-size: 0.75rem;
+  color: #e74c3c;
+}
+
+.cepheus-engine .char-roll {
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  color: #a8d8ea;
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 0.82rem;
+  font-family: monospace;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cepheus-engine .char-roll:hover {
+  background: #1a5276;
+  border-color: #a8d8ea;
+}
+
+.cepheus-engine .char-roll:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- Skills list ---- */
+.cepheus-engine .tab-controls {
+  margin-bottom: 0.5rem;
+}
+
+.cepheus-engine .tab-controls button,
+.cepheus-engine .create-skill {
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  color: #a8d8ea;
+  border-radius: 3px;
+  padding: 3px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.cepheus-engine .skills-list,
+.cepheus-engine .items-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cepheus-engine .skill-row,
+.cepheus-engine .item-row {
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #0f3460;
+}
+
+.cepheus-engine .skill-row:hover,
+.cepheus-engine .item-row:hover {
+  background: #16213e;
+}
+
+.cepheus-engine .skill-name {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #a8d8ea;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: color 0.15s ease;
+}
+
+.cepheus-engine .skill-name:hover {
+  color: #e0f4fc;
+  text-decoration: underline;
+}
+
+.cepheus-engine .skill-level {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  border-radius: 50%;
+  font-size: 0.82rem;
+  font-weight: bold;
+  font-family: monospace;
+  color: #a8d8ea;
+}
+
+.cepheus-engine .skill-char {
+  min-width: 50px;
+  font-size: 0.78rem;
+  color: #7a9cc1;
+}
+
+.cepheus-engine .item-name {
+  flex: 1;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+}
+
+.cepheus-engine .item-detail {
+  font-size: 0.8rem;
+  color: #7a9cc1;
+  min-width: 60px;
+}
+
+.cepheus-engine .item-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.cepheus-engine .item-controls button {
+  background: none;
+  border: none;
+  color: #7a9cc1;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 5px;
+  transition: color 0.15s ease;
+}
+
+.cepheus-engine .item-controls button:hover {
+  color: #a8d8ea;
+}
+
+/* Attack roll: amber */
+.cepheus-engine .weapon-row .item-controls button[data-action="rollAttack"] {
+  color: #c8a030;
+  font-size: 0.9rem;
+}
+.cepheus-engine .weapon-row .item-controls button[data-action="rollAttack"]:hover {
+  color: #ffd54f;
+}
+
+/* Damage roll: coral/red */
+.cepheus-engine .weapon-row .item-controls button[data-action="rollDamage"] {
+  color: #b05050;
+  font-size: 0.9rem;
+}
+.cepheus-engine .weapon-row .item-controls button[data-action="rollDamage"]:hover {
+  color: #ef9a9a;
+}
+
+.cepheus-engine .empty-row {
+  color: #4a6080;
+  font-style: italic;
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+/* ---- Equipment sections ---- */
+.cepheus-engine .items-section {
+  margin-bottom: 1rem;
+}
+
+.cepheus-engine .section-header {
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #0f3460;
+  margin-bottom: 0.35rem;
+}
+
+.cepheus-engine .section-header h3 {
+  flex: 1;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7a9cc1;
+  margin: 0;
+}
+
+.cepheus-engine .section-header button {
+  background: none;
+  border: none;
+  color: #7a9cc1;
+  cursor: pointer;
+}
+
+.cepheus-engine .section-header button:hover {
+  color: #a8d8ea;
+}
+
+/* ---- Biography / Notes containers ---- */
+.cepheus-engine .biography-body,
+.cepheus-engine .notes-body {
+  padding: 0.5rem;
+}
+
+.cepheus-engine .biography-body textarea,
+.cepheus-engine .notes-body textarea {
+  width: 100%;
+  min-height: 300px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+/* ---- Item sheet body ---- */
+.cepheus-engine .item-body {
+  padding: 0.75rem 1rem;
+}
+
+.cepheus-engine .item-type-label {
+  font-size: 0.78rem;
+  color: #7a9cc1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---- Forms ---- */
+.cepheus-engine .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.6rem;
+}
+
+.cepheus-engine .form-group label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #7a9cc1;
+  letter-spacing: 0.05em;
+}
+
+.cepheus-engine .form-row {
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 0.6rem;
+}
+
+.cepheus-engine .form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.cepheus-engine input[type="text"],
+.cepheus-engine input[type="number"],
+.cepheus-engine select {
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  color: #e0e0e0;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.9rem;
+}
+
+.cepheus-engine input:focus,
+.cepheus-engine select:focus {
+  outline: 1px solid #a8d8ea;
+  border-color: #a8d8ea;
+}
+
+.cepheus-engine .description label {
+  margin-bottom: 0.3rem;
+}
+
+/* ---- PSI tracker ---- */
+.cepheus-engine .psi-tracker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 6px;
+}
+
+.cepheus-engine .psi-tracker.psi-spent { border-color: #7b1fa2; }
+.cepheus-engine .psi-tracker.psi-empty { border-color: #6a0dad; opacity: 0.7; }
+
+.cepheus-engine .psi-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #b39ddb;
+  font-weight: 600;
+  min-width: 6rem;
+}
+
+.cepheus-engine .psi-undiscovered {
+  font-size: 0.82rem;
+  color: #7a9cc1;
+  font-style: italic;
+}
+
+.cepheus-engine .psi-points {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-family: monospace;
+  font-size: 1rem;
+}
+
+.cepheus-engine .psi-current  { color: #ce93d8; font-size: 1.1rem; }
+.cepheus-engine .psi-sep      { color: #4a6080; }
+.cepheus-engine .psi-max      { color: #9e9e9e; }
+.cepheus-engine .psi-max-input {
+  width: 44px;
+  text-align: center;
+  background: #0f3460;
+  border: 1px solid #7b1fa2;
+  border-radius: 3px;
+  color: #e0e0e0;
+  padding: 1px 3px;
+}
+
+.cepheus-engine .psi-dm {
+  font-size: 0.82rem;
+  color: #b39ddb;
+  background: #1a1a2e;
+  border: 1px solid #4a235a;
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+
+.cepheus-engine .psi-test-btn,
+.cepheus-engine .psi-recover-btn {
+  background: #4a235a;
+  border: 1px solid #7b1fa2;
+  border-radius: 3px;
+  color: #ce93d8;
+  font-size: 0.78rem;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.cepheus-engine .psi-test-btn:hover,
+.cepheus-engine .psi-recover-btn:hover { background: #6a0dad; }
+.cepheus-engine .psi-recover-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Psionic skills in the skills list */
+.cepheus-engine .psionic-skill { background: rgba(74, 35, 90, 0.2); }
+.cepheus-engine .psionic-skill:hover { background: rgba(74, 35, 90, 0.35); }
+
+.cepheus-engine .skill-name.psi-roll { color: #ce93d8; }
+.cepheus-engine .skill-name.psi-roll:hover { color: #f3e5f5; }
+
+.cepheus-engine .psi-cost-tag {
+  font-size: 0.72rem;
+  color: #b39ddb;
+  background: #2d0a3e;
+  border: 1px solid #4a235a;
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+/* ---- Character generation wizard ---- */
+.cepheus-engine.chargen .window-content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+.cepheus-engine .chargen-wizard {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+.cepheus-engine .chargen-log {
+  width: 180px;
+  min-width: 180px;
+  background: #0d1b2e;
+  border-right: 1px solid #0f3460;
+  padding: 0.75rem;
+  overflow-y: auto;
+  font-size: 0.75rem;
+}
+
+.cepheus-engine .chargen-log h4 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #7a9cc1;
+  margin: 0 0 0.5rem;
+  letter-spacing: 0.08em;
+}
+
+.cepheus-engine .chargen-log .log-entry {
+  color: #a8d8ea;
+  margin: 0 0 0.3rem;
+  line-height: 1.3;
+}
+
+.cepheus-engine .chargen-log .log-empty {
+  color: #4a6080;
+}
+
+.cepheus-engine .chargen-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cepheus-engine .step-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #a8d8ea;
+  margin: 0 0 0.4rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #0f3460;
+}
+
+.cepheus-engine .chargen-content .hint {
+  font-size: 0.82rem;
+  color: #7a9cc1;
+  margin: 0;
+}
+
+/* Characteristic roll grid */
+.cepheus-engine .char-roll-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+}
+
+.cepheus-engine .char-roll-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 5px;
+  padding: 0.5rem 0.25rem;
+}
+
+.cepheus-engine .char-roll-box label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #7a9cc1;
+  letter-spacing: 0.05em;
+}
+
+.cepheus-engine .char-roll-box input[type="number"] {
+  width: 48px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-family: monospace;
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  color: #e0e0e0;
+  border-radius: 3px;
+  padding: 2px;
+}
+
+.cepheus-engine .char-roll-box button,
+.cepheus-engine .char-final-val {
+  font-size: 0.75rem;
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  border-radius: 3px;
+  color: #a8d8ea;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.cepheus-engine .char-roll-box button:hover { background: #1a5276; }
+
+.cepheus-engine .char-final-val {
+  font-size: 1.2rem;
+  font-family: monospace;
+  color: #e0e0e0;
+  padding: 4px 8px;
+}
+
+/* Step action buttons */
+.cepheus-engine .step-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.cepheus-engine .step-actions button {
+  background: #16213e;
+  border: 1px solid #1a5276;
+  border-radius: 4px;
+  color: #a8d8ea;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.cepheus-engine .step-actions button:hover { background: #1a5276; }
+
+.cepheus-engine .step-actions .primary-btn {
+  background: #0f3460;
+  border-color: #a8d8ea;
+  color: #e0e0e0;
+  font-weight: 600;
+}
+
+.cepheus-engine .step-actions .primary-btn:hover { background: #1a5276; }
+.cepheus-engine .step-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Career grid */
+.cepheus-engine .career-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.cepheus-engine .career-card {
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.cepheus-engine .career-card:hover { border-color: #1a5276; }
+.cepheus-engine .career-card.selected { border-color: #a8d8ea; background: #0f3460; }
+
+.cepheus-engine .career-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.cepheus-engine .career-qual {
+  font-size: 0.72rem;
+  color: #7a9cc1;
+  text-transform: uppercase;
+}
+
+.cepheus-engine .career-qual.auto { color: #4caf50; }
+
+.cepheus-engine .career-desc {
+  font-size: 0.82rem;
+  color: #7a9cc1;
+  margin: 0.25rem 0 0;
+  font-style: italic;
+}
+
+/* Terms */
+.cepheus-engine .term-status {
+  font-size: 0.85rem;
+  color: #a8d8ea;
+  margin: 0;
+}
+
+.cepheus-engine .badge-commissioned {
+  display: inline-block;
+  background: #1a5276;
+  border: 1px solid #a8d8ea;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+  color: #a8d8ea;
+  margin-left: 0.5rem;
+}
+
+.cepheus-engine .picks-remaining {
+  font-size: 0.85rem;
+  color: #a8d8ea;
+  margin: 0 0 0.4rem;
+}
+
+.cepheus-engine .skill-picks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cepheus-engine .skill-table h5 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #7a9cc1;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.25rem;
+}
+
+.cepheus-engine .skill-table-entries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.cepheus-engine .skill-pick-btn {
+  background: #16213e;
+  border: 1px solid #1a5276;
+  border-radius: 3px;
+  color: #a8d8ea;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+
+.cepheus-engine .skill-pick-btn:hover { background: #1a5276; border-color: #a8d8ea; }
+
+/* Muster out */
+.cepheus-engine .muster-tables {
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.cepheus-engine .muster-table {
+  flex: 1;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 5px;
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.cepheus-engine .muster-table h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #7a9cc1;
+  margin: 0 0 0.3rem;
+  letter-spacing: 0.06em;
+}
+
+.cepheus-engine .muster-entry {
+  font-size: 0.8rem;
+  color: #b0c4d8;
+  padding: 1px 0;
+}
+
+.cepheus-engine .muster-table button {
+  margin-top: 0.4rem;
+  background: #0f3460;
+  border: 1px solid #a8d8ea;
+  border-radius: 3px;
+  color: #a8d8ea;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.cepheus-engine .muster-table button:hover { background: #1a5276; }
+.cepheus-engine .muster-table button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Review */
+.cepheus-engine .review-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+}
+
+.cepheus-engine .review-section h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #7a9cc1;
+  margin: 0 0 0.3rem;
+  letter-spacing: 0.06em;
+}
+
+.cepheus-engine .review-skill,
+.cepheus-engine .review-benefit {
+  font-size: 0.82rem;
+  color: #b0c4d8;
+  padding: 1px 0;
+}
+
+/* Chargen button in actor header */
+.cepheus-engine .chargen-btn {
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  border-radius: 3px;
+  color: #a8d8ea;
+  font-size: 0.78rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cepheus-engine .chargen-btn:hover { border-color: #a8d8ea; }
+
+/* ============================================================
+   Visual polish additions
+   ============================================================ */
+
+/* ---- Header name input more prominent ---- */
+.cepheus-engine .header-fields h1 input,
+.cepheus-engine .header-fields h1 {
+  font-size: 1.4rem;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Wound badge — slightly larger & bolder ---- */
+.cepheus-engine .wound-badge {
+  font-size: 0.8rem;
+  padding: 3px 10px;
+}
+
+/* ---- Characteristic label — subtle uppercase monospace ---- */
+.cepheus-engine .char-label {
+  font-family: monospace;
+  letter-spacing: 0.1em;
+}
+
+/* ---- Large value display ---- */
+.cepheus-engine .char-input,
+.cepheus-engine .char-value,
+.cepheus-engine .char-current {
+  font-size: 1.6rem;
+}
+
+/* ---- Damage indicator more visible ---- */
+.cepheus-engine .char-damage-track {
+  font-size: 0.78rem;
+  color: #ff9800;
+}
+
+/* ---- Characteristic hover ---- */
+.cepheus-engine .characteristic:not(.char-down):not(.char-damaged):hover {
+  border-top-color: #a8d8ea;
+}
+
+/* ---- Skill rows — a bit more breathing room ---- */
+.cepheus-engine .skill-row,
+.cepheus-engine .item-row {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgba(15,52,96,0.7);
+}
+
+/* ---- Skill char badge (characteristic label on right of row) ---- */
+.cepheus-engine .skill-char {
+  font-size: 0.73rem;
+  color: #4a6080;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  min-width: 44px;
+  text-align: right;
+}
+
+/* ---- Equipment: item name a little bolder ---- */
+.cepheus-engine .item-name {
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+/* ---- Equipment: weapon detail pills ---- */
+.cepheus-engine .weapon-dmg,
+.cepheus-engine .weapon-range {
+  font-size: 0.75rem;
+  background: #0f3460;
+  border: 1px solid #1a5276;
+  border-radius: 3px;
+  padding: 1px 6px;
+  color: #a8d8ea;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+/* ---- Section header divider more distinct ---- */
+.cepheus-engine .section-header {
+  padding: 0.25rem 0;
+  margin-bottom: 0.4rem;
+}
+
+.cepheus-engine .section-header h3 {
+  font-size: 0.78rem;
+  color: #a8d8ea;
+  letter-spacing: 0.08em;
+}
+
+/* ---- General button transitions ---- */
+.cepheus-engine .tab-controls button,
+.cepheus-engine .create-skill {
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cepheus-engine .tab-controls button:hover,
+.cepheus-engine .create-skill:hover {
+  border-color: #a8d8ea;
+  background: #1a5276;
+}
+
+/* ---- Textarea (generic, used outside biography/notes) ---- */
+.cepheus-engine textarea {
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  color: #c8d8e8;
+  resize: vertical;
+  padding: 0.5rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.cepheus-engine textarea:focus {
+  outline: 1px solid #a8d8ea;
+  border-color: #a8d8ea;
+}
+
+
+/* ---- Item sheet: tighter body padding with cleaner sections ---- */
+.cepheus-engine .item-body .form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* ---- Ship sheet: stat input pill ---- */
+.cepheus-engine .resource-val,
+.cepheus-engine .resource-max {
+  width: 48px;
+  border-radius: 4px;
+}
+
+/* ---- Chargen: career card hover glow ---- */
+.career-card:hover {
+  box-shadow: 0 0 6px rgba(168,216,234,0.2);
+}
+
+.career-card.selected {
+  box-shadow: 0 0 10px rgba(168,216,234,0.3);
+}
+
+/* ---- Chargen: step title accent bar ---- */
+.step-title {
+  border-left: 3px solid #a8d8ea;
+  padding-left: 0.6rem;
+  border-bottom: none;
+  color: #c8e8f4;
+}
+
+/* ---- Chargen: log newer entries stand out ---- */
+.chargen-log .log-entry:first-child {
+  color: #e0f4fc;
+  font-weight: 500;
+}
