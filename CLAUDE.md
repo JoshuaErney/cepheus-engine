@@ -21,6 +21,8 @@ Adjust the Foundry Data path if yours differs. The system `id` in `system.json` 
 
 **Inspect data:** All globals are available in console — `game`, `CONFIG`, `Hooks`, `Actor`, `Item`, `foundry`, etc.
 
+**Run the test suite:** `bun test` (requires [bun](https://bun.sh); no other dependencies — `package.json` exists solely to host the `test` script). Covers pure game-logic modules only (`module/helpers/*.mjs`, `module/data/careers.mjs`, `module/data/seeds/*.mjs`, `lang/en.json` completeness) — anything touching `foundry.abstract`, `Actor`/`Item` documents, sheets, or `chargen.mjs` requires a live Foundry environment and isn't covered; see `tests/setup.mjs` for exactly what's stubbed.
+
 ## File Structure
 
 ```

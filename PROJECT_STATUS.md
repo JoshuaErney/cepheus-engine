@@ -49,8 +49,11 @@ mindmap
         Encounters, Animal Encounter template)
       5 ready-to-use macros (roll-on-table, apply/heal damage, ship initiative,
         full recovery — all selected-token-based)
+    Tests
+      bun test — 81 tests, pure-logic modules + data/localization only (no
+      Foundry-document/sheet/chargen coverage — see §2 tests/)
     Known gaps
-      No CI / no automated tests
+      No CI (tests exist locally but nothing runs them on push/PR)
 ```
 
 ---
@@ -80,10 +83,11 @@ module/config/config.mjs
 module/data/actor-data.mjs
   characteristicField(initial)   → { max, damage } SchemaField shared by all
                                     humanoid/creature characteristics.
-  computeCharacteristicDerived(characteristics) / computeWoundState(characteristics)
-    — module-level functions shared by HumanoidData and CreatureData (previously
-    duplicated per-class; deduped since both models have a `characteristics`
-    SchemaField but don't share a base class).
+  Imports computeCharacteristicDerived/computeWoundState from
+    module/helpers/characteristics.mjs — shared by HumanoidData and CreatureData
+    (previously duplicated per-class; deduped since both models have a
+    `characteristics` SchemaField but don't share a base class; moved to its own
+    file so it's unit-testable without a `foundry.*` global — see §2 helpers/).
   HumanoidData (base class, not directly registered)
     - characteristics: str/dex/end/int/edu/soc, each {max,damage}
     - psi: {value, damage}
@@ -192,6 +196,11 @@ module/helpers/dice.mjs — rollCheck({dm, difficulty, flavor, speaker}): standa
 module/helpers/spacecombat.mjs — pure functions used by actor.mjs's ship-combat
   methods: damageToHits(damage) (Space Combat Damage table, SRD p.159) and
   applyTieredHit(current, amount, max) (0-3 tier math with overflow reporting).
+
+module/helpers/characteristics.mjs — computeCharacteristicDerived(characteristics)
+  / computeWoundState(characteristics), extracted out of actor-data.mjs (which
+  imports and uses them) specifically so they're importable and unit-testable
+  without any `foundry.*` global — see tests/characteristics.test.mjs.
 
 module/helpers/handlebars.mjs — registers: cepheusSign (± formatting), cepheusHex
   (0-15 → hex digit, used for UPP display), includes (array membership), keys
@@ -328,6 +337,39 @@ descriptions in config.mjs) intentionally uses hardcoded English strings rather
 than localization keys, matching the pre-existing convention for that layer —
 only template-rendered UI text and dialog labels go through `lang/en.json`.
 
+### Tests (`tests/`, run via `bun test`)
+
+81 tests, no test dependencies beyond the `bun` binary itself (`bun:test` is
+built in). `bunfig.toml` preloads `tests/setup.mjs`, which stubs only
+`Math.clamp` and `CONFIG.CEPHEUS` (imported from the real config.mjs, not
+duplicated) — the minimal slice of the Foundry runtime the pure-logic modules
+need. Nothing touching `foundry.abstract`, `Actor`/`Item` documents, sheets,
+`Roll`/`ChatMessage`/`DialogV2`, or `chargen.mjs` is covered — that would
+require a live Foundry environment or a much heavier mock and is out of scope
+for this suite (see Known Issue 1 re: not yet exercised live).
+
+```
+tests/setup.mjs               Preload: Math.clamp polyfill + CONFIG.CEPHEUS stub.
+tests/spacecombat.test.mjs    damageToHits() against every SRD Space Combat
+                               Damage table boundary; applyTieredHit() overflow math.
+tests/characteristics.test.mjs computeCharacteristicDerived()/computeWoundState()
+                               against hand-built characteristic objects — DM table
+                               edges, all 5 wound-state tiers.
+tests/careers.test.mjs        Structural sanity on all 24 CAREERS entries (valid
+                               characteristic keys, 7-entry rankTitles, 6-entry
+                               cash/benefits, no-commission careers have null
+                               commission/advancement per SRD p.29).
+tests/seeds.test.mjs          Item-pack seed counts (73/39/9/121/12) and shape;
+                               TABLES_SEED D66/2D6 range coverage (no gaps/overlaps);
+                               MACROS_SEED command strings parse as valid JS.
+tests/localization.test.mjs   Every statically-referenced `CEPHEUS.*` localize key
+                               (across templates/*.hbs and module/**/*.mjs) exists
+                               in lang/en.json; every system.json documentType has
+                               a TYPES label. Dynamic keys (template-literal built)
+                               are skipped — same caveat as the manual verification
+                               this replaces.
+```
+
 ---
 
 ## 3. Core mechanics reference (as implemented, not just as spec'd)
@@ -370,17 +412,19 @@ only template-rendered UI text and dialog labels go through `lang/en.json`.
    `displacement`/`powerPlant` — a ship can be built over-budget with no warning. Applies
    equally to the pre-existing non-weapon components and doesn't block space combat.
 
-Resolved since the last review (2026-07-08): ship damage buttons writing a
-nonexistent schema field, augments being unreachable from actor sheets, no augment
-compendium content, no version control, duplicated wound-state logic between
-HumanoidData/CreatureData, no ship-to-ship combat resolution beyond manual
-damage-number entry, and no macro/rollable-table content. See `git log` for details.
+Resolved since the last review (2026-07-08 → 2026-07-09): ship damage buttons
+writing a nonexistent schema field, augments being unreachable from actor sheets,
+no augment compendium content, no version control, duplicated wound-state logic
+between HumanoidData/CreatureData, no ship-to-ship combat resolution beyond manual
+damage-number entry, no macro/rollable-table content, and no automated tests. See
+`git log` for details.
 
 ---
 
 ## 5. Not yet started
 
-- Automated tests of any kind
+- CI (the `bun test` suite exists and runs locally but nothing runs it automatically
+  on push/PR — no CI config of any kind exists yet)
 - Regions-based AoE tooling (CLAUDE.md notes Measured Templates are removed in v14 in
   favor of Regions — nothing in the system currently uses either, presumably not needed
   yet given no template-based weapons/powers exist)

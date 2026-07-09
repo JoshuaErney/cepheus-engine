@@ -1,0 +1,9 @@
+{
+  "name": "cepheus-engine",
+  "private": true,
+  "type": "module",
+  "description": "Foundry VTT v14 game system for the Cepheus Engine SRD. No build step for the system itself — this package.json exists only to run the test suite.",
+  "scripts": {
+    "test": "bun test"
+  }
+}
