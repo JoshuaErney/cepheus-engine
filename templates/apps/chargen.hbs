@@ -1,36 +1,37 @@
-<div class="chargen-wizard flexrow">
+<div class="chargen-wizard flexcol">
 
-  {{!-- Left: log ──────────────────────────────────────────────────────── --}}
-  <aside class="chargen-log">
-    <h4>Log</h4>
-    {{#each log}}
-      <p class="log-entry">{{this}}</p>
-    {{else}}
-      <p class="log-empty">—</p>
-    {{/each}}
-  </aside>
-
-  {{!-- Right: step content ────────────────────────────────────────────── --}}
+  {{!-- Step content (always on top) ───────────────────────────────────── --}}
   <div class="chargen-content">
+
+    <div class="chargen-toolbar">
+      <button type="button" class="log-toggle-btn" data-action="toggleLog">
+        <i class="fas fa-list"></i> {{#if logVisible}}Hide{{else}}Show{{/if}} Log
+      </button>
+    </div>
 
     {{!────────── Step 1: characteristics ─────────────────────────────── --}}
     {{#if (eq step "characteristics")}}
       <h2 class="step-title">Step 1 — Characteristics</h2>
-      <p class="hint">Roll 2D6 for each characteristic or enter values manually.</p>
+      <p class="hint">
+        Characteristics were rolled automatically. You have
+        <strong>{{rerollsLeft}}</strong> reroll{{#unless (eq rerollsLeft 1)}}s{{/unless}} left —
+        spend them on individual stat rerolls, or a full Reroll All.
+      </p>
       <div class="char-roll-grid">
         {{#each charsDisplay}}
           <div class="char-roll-box">
             <label>{{abbr}}</label>
-            <input type="number" data-char="{{key}}" value="{{value}}" min="1" max="15" />
-            <button type="button" data-action="rollChar" data-char="{{key}}" title="Roll 2D6">
+            <span class="char-roll-val">{{value}}</span>
+            <button type="button" data-action="rollChar" data-char="{{key}}" title="Reroll 2D6"
+                    {{#unless ../rerollsLeft}}disabled{{/unless}}>
               <i class="fas fa-dice"></i>
             </button>
           </div>
         {{/each}}
       </div>
       <div class="step-actions">
-        <button type="button" data-action="rollAll">
-          <i class="fas fa-dice-six"></i> Roll All (2D6 each)
+        <button type="button" data-action="rollAll" {{#unless rerollsLeft}}disabled{{/unless}}>
+          <i class="fas fa-dice-six"></i> Reroll All (2D6 each)
         </button>
         <button type="button" data-action="goToCareer" class="primary-btn">
           Next: Choose Career →
@@ -317,4 +318,16 @@
     {{/if}}
 
   </div>{{!-- .chargen-content --}}
+
+  {{!-- Log (pinned to bottom, collapsible) ────────────────────────────── --}}
+  {{#if logVisible}}
+    <aside class="chargen-log">
+      <h4>Log</h4>
+      {{#each log}}
+        <p class="log-entry">{{this.text}}{{#if this.multi}} <span class="log-count">×{{this.count}}</span>{{/if}}</p>
+      {{else}}
+        <p class="log-empty">—</p>
+      {{/each}}
+    </aside>
+  {{/if}}
 </div>

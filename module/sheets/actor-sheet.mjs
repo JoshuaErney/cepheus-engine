@@ -1,4 +1,5 @@
 import { CepheusChargenApp } from "../apps/chargen.mjs";
+import { preventEnterSubmit } from "../helpers/form.mjs";
 
 const { ActorSheetV2 } = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -8,6 +9,7 @@ export class CepheusActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) 
     classes: ["cepheus-engine", "actor"],
     position: { width: 720, height: 620 },
     window: { resizable: true },
+    form: { submitOnChange: true },
     actions: {
       startChargen:       CepheusActorSheet.#onStartChargen,
       rollCharacteristic: CepheusActorSheet.#onRollCharacteristic,
@@ -56,6 +58,11 @@ export class CepheusActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) 
   };
 
   tabGroups = { primary: "characteristics" };
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    preventEnterSubmit(this.element);
+  }
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);

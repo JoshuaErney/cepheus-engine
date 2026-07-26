@@ -1,11 +1,14 @@
+import { preventEnterSubmit } from "../helpers/form.mjs";
+
 const { ItemSheetV2 } = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
 export class CepheusItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   static DEFAULT_OPTIONS = {
     classes: ["cepheus-engine", "item"],
-    position: { width: 520, height: 420 },
+    position: { width: 520, height: 480 },
     window: { resizable: true },
+    form: { submitOnChange: true },
     actions: {
       rollAttack: CepheusItemSheet.#onRollAttack,
       rollDamage: CepheusItemSheet.#onRollDamage,
@@ -16,6 +19,11 @@ export class CepheusItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
     header: { template: "systems/cepheus-engine/templates/item/header.hbs" },
     body:   { template: "systems/cepheus-engine/templates/item/body.hbs", scrollable: [""] },
   };
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    preventEnterSubmit(this.element);
+  }
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);

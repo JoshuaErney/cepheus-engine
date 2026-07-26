@@ -1,3 +1,5 @@
+import { preventEnterSubmit } from "../helpers/form.mjs";
+
 const { ActorSheetV2 } = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -6,6 +8,7 @@ export class CepheusCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV
     classes: ["cepheus-engine", "actor", "creature"],
     position: { width: 520, height: 500 },
     window: { resizable: true },
+    form: { submitOnChange: true },
     actions: {
       rollAttack:   CepheusCreatureSheet.#onRollAttack,
       applyDamage:  CepheusCreatureSheet.#onApplyDamage,
@@ -32,6 +35,11 @@ export class CepheusCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV
   };
 
   tabGroups = { primary: "stats" };
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    preventEnterSubmit(this.element);
+  }
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);

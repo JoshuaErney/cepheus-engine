@@ -63,6 +63,7 @@ export class AugmentData extends foundry.abstract.TypeDataModel {
     return {
       characteristic: new fields.StringField({
         initial: "",
+        blank: true,
         choices: ["", "str", "dex", "end", "int", "edu", "soc"],
       }),
       bonus:       new fields.NumberField({ required: true, integer: true, initial: 0 }),
@@ -85,9 +86,10 @@ export class ShipComponentData extends foundry.abstract.TypeDataModel {
       // and hit-location "Turret"/"Bay" resolution ignore them.
       weaponType: new fields.StringField({
         initial: "",
+        blank: true,
         choices: ["", "pulseLaser", "beamLaser", "particleBeam", "fusionGun", "mesonGun", "sandcaster"],
       }),
-      mount:  new fields.StringField({ initial: "", choices: ["", "turret", "bay"] }),
+      mount:  new fields.StringField({ initial: "", blank: true, choices: ["", "turret", "bay"] }),
       damage: new fields.StringField({ initial: "" }),
       // Turret/Bay damage track (SRD p.159-160): 0=undamaged, 1=DM-2 to
       // attacks, 2=disabled, 3=destroyed. Further hits redirect to the ship's

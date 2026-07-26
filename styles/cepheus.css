@@ -629,13 +629,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  min-width: 22px;
   flex-shrink: 0;
-  background: #0f3460;
-  border: 1px solid #1a5276;
-  border-radius: 50%;
-  font-size: 0.82rem;
+  background: none;
+  border: none;
+  font-size: 0.85rem;
   font-weight: bold;
   font-family: monospace;
   color: #a8d8ea;
@@ -810,6 +808,11 @@
   margin-bottom: 0.3rem;
 }
 
+.cepheus-engine .description prose-mirror {
+  --min-height: 160px;
+  min-height: 160px;
+}
+
 /* ---- PSI tracker ---- */
 .cepheus-engine .psi-tracker {
   display: flex;
@@ -912,17 +915,37 @@
 
 .cepheus-engine .chargen-wizard {
   display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
   gap: 0;
 }
 
+.cepheus-engine .chargen-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cepheus-engine .log-toggle-btn {
+  background: #16213e;
+  border: 1px solid #1a5276;
+  border-radius: 4px;
+  color: #7a9cc1;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.cepheus-engine .log-toggle-btn:hover { background: #1a5276; color: #a8d8ea; }
+
 .cepheus-engine .chargen-log {
-  width: 180px;
-  min-width: 180px;
+  width: auto;
+  min-width: 0;
+  max-height: 150px;
+  flex-shrink: 0;
   background: #0d1b2e;
-  border-right: 1px solid #0f3460;
-  padding: 0.75rem;
+  border-top: 1px solid #0f3460;
+  padding: 0.6rem 0.75rem;
   overflow-y: auto;
   font-size: 0.75rem;
 }
@@ -931,7 +954,7 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   color: #7a9cc1;
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.4rem;
   letter-spacing: 0.08em;
 }
 
@@ -941,6 +964,12 @@
   line-height: 1.3;
 }
 
+.cepheus-engine .chargen-log .log-count {
+  color: #7a9cc1;
+  font-family: monospace;
+  font-size: 0.72rem;
+}
+
 .cepheus-engine .chargen-log .log-empty {
   color: #4a6080;
 }
@@ -948,6 +977,7 @@
 .cepheus-engine .chargen-content {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
   padding: 1rem 1.2rem;
   display: flex;
   flex-direction: column;
@@ -994,8 +1024,8 @@
   letter-spacing: 0.05em;
 }
 
-.cepheus-engine .char-roll-box input[type="number"] {
-  width: 48px;
+.cepheus-engine .char-roll-box .char-roll-val {
+  min-width: 48px;
   text-align: center;
   font-size: 1.1rem;
   font-family: monospace;
@@ -1126,30 +1156,32 @@
 .cepheus-engine .skill-picks {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .cepheus-engine .skill-table h5 {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   color: #7a9cc1;
   letter-spacing: 0.06em;
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.5rem;
 }
 
 .cepheus-engine .skill-table-entries {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.6rem;
 }
 
 .cepheus-engine .skill-pick-btn {
   background: #16213e;
   border: 1px solid #1a5276;
-  border-radius: 3px;
+  border-radius: 5px;
   color: #a8d8ea;
-  font-size: 0.78rem;
-  padding: 0.2rem 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.9rem;
+  min-width: 110px;
+  text-align: center;
   cursor: pointer;
 }
 

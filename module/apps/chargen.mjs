@@ -11,6 +11,7 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
     actions: {
       rollAll:         CepheusChargenApp.#onRollAll,
       rollChar:        CepheusChargenApp.#onRollChar,
+      toggleLog:       CepheusChargenApp.#onToggleLog,
       goToCareer:      CepheusChargenApp.#onGoToCareer,
       selectCareer:    CepheusChargenApp.#onSelectCareer,
       enterCareer:     CepheusChargenApp.#onEnterCareer,
@@ -57,6 +58,24 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
     this.musterLeft   = 0;
     this.cashRollsLeft = 3;     // max 3 cash rolls per character
     this.log          = [];
+    this.logVisible   = false;  // log starts hidden; player toggles it on
+    this.rerollsLeft  = 3;      // shared pool: an individual reroll or a full Roll All
+                                 // each cost 1 — the initial auto-roll is free
+    this._autoRolled  = false;
+  }
+
+  // Step 1 auto-rolls all six characteristics before the first render, so the
+  // player never sees zeros and the free initial roll never touches rerollsLeft.
+  async _preFirstRender(context, options) {
+    await super._preFirstRender(context, options);
+    if (this._autoRolled) return;
+    this._autoRolled = true;
+    const keys = ["str", "dex", "end", "int", "edu", "soc"];
+    for (const k of keys) {
+      const r = await new Roll("2d6").evaluate();
+      this.chars[k] = r.total;
+    }
+    this._addLog("Characteristics rolled.");
   }
 
   // ── Context ──────────────────────────────────────────────────────────────
@@ -126,13 +145,23 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
       benefits:     this.benefits,
       musterLeft:   this.musterLeft,
       cashRollsLeft: this.cashRollsLeft,
-      log:          [...this.log].reverse(),   // newest first
+      log:          [...this.log].reverse().map(e => ({ ...e, multi: e.count > 1 })),  // newest first
+      logVisible:   this.logVisible,
+      rerollsLeft:  this.rerollsLeft,
       age:          18 + this.termsServed * 4,
     };
   }
 
-  _addLog(msg) {
-    this.log.push(msg);
+  // dedupeKey: if the most recently added entry shares this key, increment its
+  // counter instead of pushing a new duplicate line (used by repeated Roll All clicks).
+  _addLog(msg, dedupeKey = null) {
+    const last = this.log[this.log.length - 1];
+    if (dedupeKey && last?.key === dedupeKey) {
+      last.count++;
+      last.text = msg;
+      return;
+    }
+    this.log.push({ text: msg, count: 1, key: dedupeKey });
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -169,31 +198,33 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
   // ── Characteristic actions ────────────────────────────────────────────────
 
   static async #onRollAll(event, target) {
+    if (this.rerollsLeft <= 0) return;
     const keys = ["str", "dex", "end", "int", "edu", "soc"];
     for (const k of keys) {
       const r = await new Roll("2d6").evaluate();
       this.chars[k] = r.total;
     }
-    this._addLog("Rolled characteristics.");
+    this.rerollsLeft--;
+    this._addLog(`Rerolled all characteristics. (${this.rerollsLeft} reroll${this.rerollsLeft === 1 ? "" : "s"} left)`, "rollAll");
     this.render({ parts: ["chargen"] });
   }
 
   static async #onRollChar(event, target) {
+    if (this.rerollsLeft <= 0) return;
     const key = target.dataset.char;
     const r   = await new Roll("2d6").evaluate();
     this.chars[key] = r.total;
+    this.rerollsLeft--;
+    this._addLog(`Rerolled ${key.toUpperCase()}: ${r.total}. (${this.rerollsLeft} reroll${this.rerollsLeft === 1 ? "" : "s"} left)`);
+    this.render({ parts: ["chargen"] });
+  }
+
+  static #onToggleLog(event, target) {
+    this.logVisible = !this.logVisible;
     this.render({ parts: ["chargen"] });
   }
 
   static async #onGoToCareer(event, target) {
-    // Read any manually-entered characteristic values from the form before advancing
-    const form = this.element.querySelector("form");
-    if (form) {
-      for (const input of form.querySelectorAll("input[data-char]")) {
-        const v = parseInt(input.value, 10);
-        if (!isNaN(v)) this.chars[input.dataset.char] = Math.max(1, Math.min(15, v));
-      }
-    }
     if (Object.values(this.chars).some(v => v < 1)) {
       ui.notifications.warn(game.i18n.localize("CEPHEUS.ChargenNeedChars"));
       return;
