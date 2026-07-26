@@ -2,10 +2,10 @@
 
   <div class="tab-controls flexrow">
     <div class="component-totals">
-      <span>{{localize "CEPHEUS.TonnageUsed"}}: <strong>{{usedTonnage}}T</strong></span>
-      <span>{{localize "CEPHEUS.PowerUsed"}}: <strong>{{usedPower}}</strong></span>
+      <span>{{localize "CEPHEUS.TonnageUsed"}}: <strong>{{system.usedTonnage}}T</strong></span>
+      <span>{{localize "CEPHEUS.PowerUsed"}}: <strong>{{system.usedPower}}</strong></span>
     </div>
-    <button type="button" data-action="createComponent">
+    <button type="button" data-action="createItem" data-type="shipComponent">
       <i class="fas fa-plus"></i> {{localize "CEPHEUS.AddComponent"}}
     </button>
   </div>

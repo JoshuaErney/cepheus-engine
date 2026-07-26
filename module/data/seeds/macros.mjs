@@ -33,12 +33,7 @@ await table.draw();
     scope: "global",
     img: "icons/svg/blood.svg",
     command: `
-const { DialogV2 } = foundry.applications.api;
-const amount = await DialogV2.prompt({
-  window: { title: "Apply Damage" },
-  content: '<div class="form-group"><label>Damage amount</label><input type="number" name="damage" value="0" min="0" autofocus /></div>',
-  ok: { label: "Apply", callback: (event, button) => button.form.elements.damage.valueAsNumber },
-});
+const amount = await game.cepheus.promptNumber({ title: "Apply Damage", label: "Damage amount" });
 if (!amount || amount <= 0) return;
 
 const tokens = canvas.tokens.controlled;
@@ -58,12 +53,7 @@ for (const token of tokens) {
     scope: "global",
     img: "icons/svg/heal.svg",
     command: `
-const { DialogV2 } = foundry.applications.api;
-const amount = await DialogV2.prompt({
-  window: { title: "Heal Damage" },
-  content: '<div class="form-group"><label>Amount to heal</label><input type="number" name="heal" value="0" min="0" autofocus /></div>',
-  ok: { label: "Heal", callback: (event, button) => button.form.elements.heal.valueAsNumber },
-});
+const amount = await game.cepheus.promptNumber({ title: "Heal Damage", label: "Amount to heal", initial: 1, min: 1, okLabel: "Heal" });
 if (!amount || amount <= 0) return;
 
 const tokens = canvas.tokens.controlled;

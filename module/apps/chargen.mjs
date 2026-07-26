@@ -1,6 +1,11 @@
 import { CAREERS, CAREER_MAP } from "../data/careers.mjs";
+import { CEPHEUS } from "../config/config.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+// The six UPP characteristics in SRD order — PSI is separate and plays no
+// part in chargen (it is discovered later via testPsionics).
+const CHAR_KEYS = Object.keys(CEPHEUS.characteristics).filter(k => k !== "psi");
 
 export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -45,14 +50,14 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   _reset() {
     this.step     = "characteristics";
-    this.chars    = { str: 0, dex: 0, end: 0, int: 0, edu: 0, soc: 0 };
+    this.chars    = Object.fromEntries(CHAR_KEYS.map(k => [k, 0]));
     this.career   = null;       // career data object
     this.rank     = 0;
     this.commissioned = false;
     this.termsServed  = 0;
     this.termState    = null;   // { survivalDone, skillsLeft, advanceDone }
     this.gainedSkills = {};     // { skillName: level }
-    this.charBonuses  = { str: 0, dex: 0, end: 0, int: 0, edu: 0, soc: 0 };
+    this.charBonuses  = Object.fromEntries(CHAR_KEYS.map(k => [k, 0]));
     this.credits      = 0;
     this.benefits     = [];
     this.musterLeft   = 0;
@@ -70,8 +75,7 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
     await super._preFirstRender(context, options);
     if (this._autoRolled) return;
     this._autoRolled = true;
-    const keys = ["str", "dex", "end", "int", "edu", "soc"];
-    for (const k of keys) {
+    for (const k of CHAR_KEYS) {
       const r = await new Roll("2d6").evaluate();
       this.chars[k] = r.total;
     }
@@ -82,12 +86,11 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   async _prepareContext(options) {
     const ctx = await super._prepareContext(options);
-    const charKeys = ["str", "dex", "end", "int", "edu", "soc"];
-    const abbr = { str: "STR", dex: "DEX", end: "END", int: "INT", edu: "EDU", soc: "SOC" };
+    const abbr = k => game.i18n.localize(CEPHEUS.characteristicsAbbr[k]);
 
-    const charsDisplay = charKeys.map(k => ({
+    const charsDisplay = CHAR_KEYS.map(k => ({
       key:   k,
-      abbr:  abbr[k],
+      abbr:  abbr(k),
       value: this.chars[k],
     }));
 
@@ -120,8 +123,8 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const finalChars = {};
-    for (const k of charKeys) {
-      finalChars[k] = { key: k, abbr: abbr[k], value: (this.chars[k] || 0) + (this.charBonuses[k] || 0) };
+    for (const k of CHAR_KEYS) {
+      finalChars[k] = { key: k, abbr: abbr(k), value: (this.chars[k] || 0) + (this.charBonuses[k] || 0) };
     }
 
     return {
@@ -168,7 +171,7 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   _charDm(key) {
     const val = (this.chars[key] ?? 0) + (this.charBonuses[key] ?? 0);
-    const dm = CONFIG.CEPHEUS.dmByValue[Math.min(15, Math.max(0, val))];
+    const dm = CONFIG.CEPHEUS.dmByValue[Math.clamp(val, 0, 15)];
     return dm ?? 0;
   }
 
@@ -199,8 +202,7 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   static async #onRollAll(event, target) {
     if (this.rerollsLeft <= 0) return;
-    const keys = ["str", "dex", "end", "int", "edu", "soc"];
-    for (const k of keys) {
+    for (const k of CHAR_KEYS) {
       const r = await new Roll("2d6").evaluate();
       this.chars[k] = r.total;
     }
@@ -453,11 +455,10 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
   static async #onApplyCharacter(event, target) {
     const actor = this.actor;
     const updates = {};
-    const charKeys = ["str", "dex", "end", "int", "edu", "soc"];
 
     // Apply characteristics
-    for (const k of charKeys) {
-      const finalVal = Math.max(1, Math.min(15, (this.chars[k] ?? 7) + (this.charBonuses[k] ?? 0)));
+    for (const k of CHAR_KEYS) {
+      const finalVal = Math.clamp((this.chars[k] ?? 7) + (this.charBonuses[k] ?? 0), 1, 15);
       updates[`system.characteristics.${k}.max`]    = finalVal;
       updates[`system.characteristics.${k}.damage`] = 0;
     }

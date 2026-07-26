@@ -100,12 +100,23 @@ CEPHEUS.spaceCombat.hitLocation = {
   12: { external: "hull",    internal: "bridge",     smallCraft: "bridge" },
 };
 
-// Display labels for hit-location chat output.
+// Display labels for hit locations — the single label source for both the
+// ship sheet's subsystem rows and hit-resolution chat output. i18n keys,
+// localized at point of use, matching rangeBands/weaponTypes/mounts above.
 CEPHEUS.spaceCombat.locationLabels = {
-  hull: "Hull", structure: "Structure", armor: "Armor", crew: "Crew",
-  sensors: "Sensors", mDrive: "M-Drive", jDrive: "J-Drive",
-  powerPlant: "Power Plant", bridge: "Bridge", fuel: "Fuel", hold: "Cargo Hold",
-  turret: "Turret", bay: "Bay",
+  hull:       "CEPHEUS.LocHull",
+  structure:  "CEPHEUS.LocStructure",
+  armor:      "CEPHEUS.LocArmor",
+  crew:       "CEPHEUS.LocCrew",
+  sensors:    "CEPHEUS.LocSensors",
+  mDrive:     "CEPHEUS.LocMDrive",
+  jDrive:     "CEPHEUS.LocJDrive",
+  powerPlant: "CEPHEUS.LocPowerPlant",
+  bridge:     "CEPHEUS.LocBridge",
+  fuel:       "CEPHEUS.LocFuel",
+  hold:       "CEPHEUS.LocHold",
+  turret:     "CEPHEUS.LocTurret",
+  bay:        "CEPHEUS.LocBay",
 };
 
 // Ship-level subsystem hit tracks (p.159-161): 3 tiers of effect text, then

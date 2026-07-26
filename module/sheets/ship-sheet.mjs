@@ -1,18 +1,11 @@
-import { preventEnterSubmit } from "../helpers/form.mjs";
+import { CepheusBaseActorSheet } from "./base-actor-sheet.mjs";
+import { promptForm } from "../helpers/dialogs.mjs";
 
-const { ActorSheetV2 } = foundry.applications.sheets;
-const { HandlebarsApplicationMixin } = foundry.applications.api;
-
-export class CepheusShipSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
+export class CepheusShipSheet extends CepheusBaseActorSheet {
   static DEFAULT_OPTIONS = {
     classes: ["cepheus-engine", "actor", "ship"],
     position: { width: 700, height: 580 },
-    window: { resizable: true },
-    form: { submitOnChange: true },
     actions: {
-      createComponent: CepheusShipSheet.#onCreateComponent,
-      editItem:         CepheusShipSheet.#onEditItem,
-      deleteItem:       CepheusShipSheet.#onDeleteItem,
       rollInitiative:   CepheusShipSheet.#onRollInitiative,
       rollAttack:       CepheusShipSheet.#onRollAttack,
       rollWeaponDamage: CepheusShipSheet.#onRollWeaponDamage,
@@ -43,114 +36,35 @@ export class CepheusShipSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     },
   };
 
-  tabGroups = { primary: "statistics" };
-
-  async _onRender(context, options) {
-    await super._onRender(context, options);
-    preventEnterSubmit(this.element);
-  }
+  static TABS = ["statistics", "components", "notes"];
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const sys = this.actor.system;
-    const components = this.actor.itemTypes.shipComponent ?? [];
 
     return {
       ...context,
-      tabs:            this._getTabs(),
-      shipClass:       sys.shipClass ?? "",
-      displacement:    sys.displacement ?? 100,
-      hullPoints:      sys.hullPoints,
-      structurePoints: sys.structurePoints,
-      armor:           sys.armor ?? 0,
-      hardpoints:      sys.hardpoints ?? 0,
-      jumpRating:      sys.jumpRating ?? 0,
-      maneuverRating:  sys.maneuverRating ?? 1,
-      powerPlant:      sys.powerPlant ?? 1,
-      fuel:            sys.fuel,
-      fuelPerJump:     sys.fuelPerJump ?? 0,
-      fuelPerMonth:    sys.fuelPerMonth ?? 0,
-      cargoCapacity:   sys.cargoCapacity ?? 0,
-      cargoUsed:       sys.cargoUsed ?? 0,
-      freeCargo:       sys.freeCargo ?? 0,
-      crewMin:         sys.crewMin ?? 1,
-      credits:         sys.credits ?? 0,
-      components,
-      usedTonnage:     sys.usedTonnage ?? 0,
-      usedPower:       sys.usedPower   ?? 0,
-      notes:           sys.notes ?? "",
-      systemHitRows: [
-        { key: "sensors",    label: "CEPHEUS.SysSensorsName",    value: sys.sensorsHits    ?? 0 },
-        { key: "mDrive",     label: "CEPHEUS.SysMDriveName",     value: sys.mDriveHits     ?? 0 },
-        { key: "jDrive",     label: "CEPHEUS.SysJDriveName",     value: sys.jDriveHits     ?? 0 },
-        { key: "powerPlant", label: "CEPHEUS.SysPowerPlantName", value: sys.powerPlantHits ?? 0 },
-        { key: "bridge",     label: "CEPHEUS.SysBridgeName",     value: sys.bridgeHits     ?? 0 },
-        { key: "fuel",       label: "CEPHEUS.SysFuelName",       value: sys.fuelHits       ?? 0 },
-        { key: "hold",       label: "CEPHEUS.SysHoldName",       value: sys.holdHits       ?? 0 },
-      ],
+      components: this.actor.itemTypes.shipComponent,
+      // One row per subsystem damage track, derived from the config registry
+      // so new subsystems only need a config entry + <key>Hits schema field.
+      systemHitRows: Object.keys(CONFIG.CEPHEUS.spaceCombat.subsystems).map(key => ({
+        key,
+        label: CONFIG.CEPHEUS.spaceCombat.locationLabels[key],
+        value: sys[`${key}Hits`],
+      })),
       weaponTypeLabels: CONFIG.CEPHEUS.spaceCombat.weaponTypes,
       mountLabels:      CONFIG.CEPHEUS.spaceCombat.mounts,
     };
   }
 
-  async _preparePartContext(partId, context, options) {
-    context = await super._preparePartContext(partId, context, options);
-    if (context.tabs) context.tab = context.tabs[partId];
-    return context;
-  }
-
-  _getTabs() {
-    const group = "primary";
-    const tabIds = ["statistics", "components", "notes"];
-    return Object.fromEntries(
-      tabIds.map(id => [
-        id,
-        {
-          id,
-          group,
-          active:   this.tabGroups[group] === id,
-          cssClass: this.tabGroups[group] === id ? "active" : "",
-          label:    `CEPHEUS.Tab${id.charAt(0).toUpperCase() + id.slice(1)}`,
-        },
-      ])
-    );
-  }
-
-  static async #onCreateComponent(event, target) {
-    await Item.create(
-      { name: game.i18n.localize("TYPES.Item.shipComponent"), type: "shipComponent" },
-      { parent: this.actor }
-    );
-  }
-
-  static async #onEditItem(event, target) {
-    const item = this.actor.items.get(target.dataset.itemId);
-    await item?.sheet.render({ force: true });
-  }
-
-  static async #onDeleteItem(event, target) {
-    const item = this.actor.items.get(target.dataset.itemId);
-    if (item) await item.delete();
-  }
-
   static async #onRollInitiative(event, target) {
-    const { DialogV2 } = foundry.applications.api;
-    const result = await DialogV2.prompt({
-      window: { title: game.i18n.localize("CEPHEUS.ShipInitiative") },
-      content: `<div class="form-group">
-        <label><input type="checkbox" name="thrustAdvantage" /> ${game.i18n.localize("CEPHEUS.ThrustAdvantage")}</label>
-      </div>
-      <div class="form-group">
-        <label>${game.i18n.localize("CEPHEUS.TacticsEffect")}</label>
-        <input type="number" name="tacticsEffect" value="0" />
-      </div>`,
-      ok: {
-        label: game.i18n.localize("CEPHEUS.RollInitiative"),
-        callback: (event, button) => ({
-          thrustAdvantage: button.form.elements.thrustAdvantage.checked,
-          tacticsEffect:   button.form.elements.tacticsEffect.valueAsNumber || 0,
-        }),
-      },
+    const result = await promptForm({
+      title:   "CEPHEUS.ShipInitiative",
+      okLabel: "CEPHEUS.RollInitiative",
+      fields: [
+        { type: "checkbox", name: "thrustAdvantage", label: "CEPHEUS.ThrustAdvantage" },
+        { type: "number",   name: "tacticsEffect",   label: "CEPHEUS.TacticsEffect" },
+      ],
     });
     if (result) await this.actor.rollShipInitiative(result);
   }
@@ -166,23 +80,12 @@ export class CepheusShipSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   static async #onApplyShipHit(event, target) {
-    const { DialogV2 } = foundry.applications.api;
-    const result = await DialogV2.prompt({
-      window: { title: game.i18n.localize("CEPHEUS.ApplyHit") },
-      content: `<div class="form-group">
-        <label>${game.i18n.localize("CEPHEUS.DamageAmount")}</label>
-        <input type="number" name="damage" value="0" min="0" autofocus />
-      </div>
-      <div class="form-group">
-        <label><input type="checkbox" name="radiation" /> ${game.i18n.localize("CEPHEUS.Radiation")}</label>
-      </div>`,
-      ok: {
-        label: game.i18n.localize("CEPHEUS.Apply"),
-        callback: (event, button) => ({
-          damage:    button.form.elements.damage.valueAsNumber,
-          radiation: button.form.elements.radiation.checked,
-        }),
-      },
+    const result = await promptForm({
+      title: "CEPHEUS.ApplyHit",
+      fields: [
+        { type: "number",   name: "damage",    label: "CEPHEUS.DamageAmount", min: 0 },
+        { type: "checkbox", name: "radiation", label: "CEPHEUS.Radiation" },
+      ],
     });
     if (result && result.damage > 0) {
       await this.actor.applyShipDamage(result.damage, { radiation: result.radiation });

@@ -1,6 +1,6 @@
 <section class="tab characteristics" data-group="primary" data-tab="characteristics">
   <div class="characteristics-grid">
-    {{#each characteristics as |char key|}}
+    {{#each system.characteristics as |char key|}}
       <div class="characteristic {{#if char.isDown}}char-down{{else if char.isDamaged}}char-damaged{{/if}}">
         <label class="char-label">{{localize (lookup ../charConfig key)}}</label>
 
@@ -48,10 +48,10 @@
   </div>
 
   {{!-- PSI tracker ──────────────────────────────────────────────────────── --}}
-  <div class="psi-tracker {{#if psi.isDamaged}}psi-spent{{/if}} {{#if psi.isDown}}psi-empty{{/if}}">
+  <div class="psi-tracker {{#if system.psi.isDamaged}}psi-spent{{/if}} {{#if system.psi.isDown}}psi-empty{{/if}}">
     <span class="psi-label">{{localize "CEPHEUS.CharPsi"}}</span>
 
-    {{#if (eq psi.value 0)}}
+    {{#if (eq system.psi.value 0)}}
       {{!-- Undiscovered --}}
       <span class="psi-undiscovered">{{localize "CEPHEUS.PsiUndiscovered"}}</span>
       {{#if editable}}
@@ -63,19 +63,19 @@
     {{else}}
       {{!-- PSI points track --}}
       <div class="psi-points">
-        <span class="psi-current">{{psi.current}}</span>
+        <span class="psi-current">{{system.psi.current}}</span>
         <span class="psi-sep">/</span>
         {{#if editable}}
-          <input type="number" name="system.psi.value" value="{{psi.value}}"
+          <input type="number" name="system.psi.value" value="{{system.psi.value}}"
                  min="0" max="15" class="psi-max-input" />
         {{else}}
-          <span class="psi-max">{{psi.value}}</span>
+          <span class="psi-max">{{system.psi.value}}</span>
         {{/if}}
       </div>
-      <span class="psi-dm">DM {{cepheusSign psi.dm}}</span>
+      <span class="psi-dm">DM {{cepheusSign system.psi.dm}}</span>
       {{#if editable}}
         <button type="button" class="psi-recover-btn" data-action="recoverPsi"
-                title="{{localize 'CEPHEUS.PsiRecover'}}" {{#unless psi.isDamaged}}disabled{{/unless}}>
+                title="{{localize 'CEPHEUS.PsiRecover'}}" {{#unless system.psi.isDamaged}}disabled{{/unless}}>
           <i class="fas fa-brain"></i> {{localize "CEPHEUS.Recover"}}
         </button>
       {{/if}}

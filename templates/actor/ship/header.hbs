@@ -16,10 +16,10 @@
       </h1>
       <div class="ship-class">
         {{#if editable}}
-          <input type="text" name="system.shipClass" value="{{shipClass}}"
+          <input type="text" name="system.shipClass" value="{{system.shipClass}}"
                  placeholder="{{localize 'CEPHEUS.ShipClass'}}" />
         {{else}}
-          <span>{{shipClass}}</span>
+          <span>{{system.shipClass}}</span>
         {{/if}}
       </div>
     </div>
@@ -30,13 +30,13 @@
         <label>{{localize "CEPHEUS.HullPoints"}}</label>
         <div class="resource-track flexrow">
           {{#if editable}}
-            <input type="number" name="system.hullPoints.value" value="{{hullPoints.value}}" min="0" class="resource-val" />
+            <input type="number" name="system.hullPoints.value" value="{{system.hullPoints.value}}" min="0" class="resource-val" />
             <span class="resource-sep">/</span>
-            <input type="number" name="system.hullPoints.max" value="{{hullPoints.max}}" min="0" class="resource-max" />
+            <input type="number" name="system.hullPoints.max" value="{{system.hullPoints.max}}" min="0" class="resource-max" />
           {{else}}
-            <span class="resource-val">{{hullPoints.value}}</span>
+            <span class="resource-val">{{system.hullPoints.value}}</span>
             <span class="resource-sep">/</span>
-            <span class="resource-max">{{hullPoints.max}}</span>
+            <span class="resource-max">{{system.hullPoints.max}}</span>
           {{/if}}
         </div>
       </div>
@@ -46,13 +46,13 @@
         <label>{{localize "CEPHEUS.StructurePoints"}}</label>
         <div class="resource-track flexrow">
           {{#if editable}}
-            <input type="number" name="system.structurePoints.value" value="{{structurePoints.value}}" min="0" class="resource-val" />
+            <input type="number" name="system.structurePoints.value" value="{{system.structurePoints.value}}" min="0" class="resource-val" />
             <span class="resource-sep">/</span>
-            <input type="number" name="system.structurePoints.max" value="{{structurePoints.max}}" min="0" class="resource-max" />
+            <input type="number" name="system.structurePoints.max" value="{{system.structurePoints.max}}" min="0" class="resource-max" />
           {{else}}
-            <span class="resource-val">{{structurePoints.value}}</span>
+            <span class="resource-val">{{system.structurePoints.value}}</span>
             <span class="resource-sep">/</span>
-            <span class="resource-max">{{structurePoints.max}}</span>
+            <span class="resource-max">{{system.structurePoints.max}}</span>
           {{/if}}
         </div>
       </div>
@@ -62,13 +62,13 @@
         <label>{{localize "CEPHEUS.Fuel"}}</label>
         <div class="resource-track flexrow">
           {{#if editable}}
-            <input type="number" name="system.fuel.value" value="{{fuel.value}}" min="0" class="resource-val" />
+            <input type="number" name="system.fuel.value" value="{{system.fuel.value}}" min="0" class="resource-val" />
             <span class="resource-sep">/</span>
-            <input type="number" name="system.fuel.capacity" value="{{fuel.capacity}}" min="0" class="resource-max" />
+            <input type="number" name="system.fuel.capacity" value="{{system.fuel.capacity}}" min="0" class="resource-max" />
           {{else}}
-            <span class="resource-val">{{fuel.value}}</span>
+            <span class="resource-val">{{system.fuel.value}}</span>
             <span class="resource-sep">/</span>
-            <span class="resource-max">{{fuel.capacity}}</span>
+            <span class="resource-max">{{system.fuel.capacity}}</span>
           {{/if}}
         </div>
       </div>
@@ -78,9 +78,9 @@
         <label>{{localize "CEPHEUS.Displacement"}}</label>
         <div class="resource-track flexrow">
           {{#if editable}}
-            <input type="number" name="system.displacement" value="{{displacement}}" min="0" class="resource-val" />
+            <input type="number" name="system.displacement" value="{{system.displacement}}" min="0" class="resource-val" />
           {{else}}
-            <span class="resource-val">{{displacement}}</span>
+            <span class="resource-val">{{system.displacement}}</span>
           {{/if}}
           <span class="resource-sep">T</span>
         </div>

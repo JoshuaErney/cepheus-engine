@@ -4,7 +4,6 @@ export class CepheusNpcSheet extends CepheusActorSheet {
   static DEFAULT_OPTIONS = {
     classes: ["cepheus-engine", "actor", "npc"],
     position: { width: 680, height: 580 },
-    window: { resizable: true },
   };
 
   // Reuse all character templates except swap biography → notes.
@@ -33,28 +32,5 @@ export class CepheusNpcSheet extends CepheusActorSheet {
     },
   };
 
-  tabGroups = { primary: "characteristics" };
-
-  _getTabs() {
-    const group = "primary";
-    const tabIds = ["characteristics", "skills", "equipment", "notes"];
-    return Object.fromEntries(
-      tabIds.map(id => [
-        id,
-        {
-          id,
-          group,
-          active:   this.tabGroups[group] === id,
-          cssClass: this.tabGroups[group] === id ? "active" : "",
-          label:    `CEPHEUS.Tab${id.charAt(0).toUpperCase() + id.slice(1)}`,
-        },
-      ])
-    );
-  }
-
-  async _prepareContext(options) {
-    const context = await super._prepareContext(options);
-    context.notes = this.actor.system.notes ?? "";
-    return context;
-  }
+  static TABS = ["characteristics", "skills", "equipment", "notes"];
 }

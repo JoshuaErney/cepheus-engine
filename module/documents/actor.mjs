@@ -1,4 +1,6 @@
 import { damageToHits, applyTieredHit } from "../helpers/spacecombat.mjs";
+import { evaluateCheck, formatCheckFlavor, isDiceFormula, normalizeDiceFormula, signed } from "../helpers/dice.mjs";
+import { promptSelect } from "../helpers/dialogs.mjs";
 
 export class CepheusActor extends Actor {
   prepareDerivedData() {
@@ -67,53 +69,51 @@ export class CepheusActor extends Actor {
 
   async rollSkill(skillItem, options = {}) {
     const characteristicKey = options.characteristicKey ?? skillItem.system.characteristic;
-    const difficulty        = options.difficulty ?? "average";
     const char       = this.system.characteristics?.[characteristicKey];
     const skillLevel = skillItem.system.level ?? 0;
-    const target      = CONFIG.CEPHEUS.difficulties[difficulty]?.target ?? 8;
     const woundPenalty = this.system.woundPenalty ?? 0;
-    const dm          = (char?.dm ?? 0) + skillLevel + woundPenalty;
+    const charDm      = char?.dm ?? 0;
 
-    const roll    = await new Roll(`2d6 + ${dm}`).evaluate();
-    const success = roll.total >= target;
-    const diffLabel = game.i18n.localize(CONFIG.CEPHEUS.difficulties[difficulty]?.label);
-
-    await roll.toMessage({
-      speaker: ChatMessage.getSpeaker({ actor: this }),
-      flavor:  `${skillItem.name} — ${diffLabel} (${target}+): ${success
-        ? game.i18n.localize("CEPHEUS.Success")
-        : game.i18n.localize("CEPHEUS.Failure")}`,
+    const check = await evaluateCheck({
+      dm:         charDm + skillLevel + woundPenalty,
+      difficulty: options.difficulty ?? "average",
     });
-    return { roll, success };
+    const charLabel = game.i18n.localize(CONFIG.CEPHEUS.characteristics[characteristicKey] ?? "");
+
+    await check.roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor: formatCheckFlavor({
+        title:   skillItem.name,
+        kind:    "Skill Check",
+        detail:  `Skill ${skillLevel} / ${charLabel} DM${signed(charDm)} / ${check.diffLabel} (${check.target}+)`,
+        outcome: check,
+      }),
+    });
+    return { roll: check.roll, success: check.success };
   }
 
   // ── Shared difficulty picker ─────────────────────────────────────────────
 
   async _promptDifficulty(defaultDifficulty = "average") {
-    const { DialogV2 } = foundry.applications.api;
-    const opts = Object.entries(CONFIG.CEPHEUS.difficulties)
-      .map(([k, v]) =>
-        `<option value="${k}" ${k === defaultDifficulty ? "selected" : ""}>${game.i18n.localize(v.label)}</option>`
-      )
-      .join("");
-    return DialogV2.prompt({
-      window: { title: game.i18n.localize("CEPHEUS.SelectDifficulty") },
-      content: `<div class="form-group"><label>${game.i18n.localize("CEPHEUS.SelectDifficulty")}</label><select name="difficulty">${opts}</select></div>`,
-      ok: { label: game.i18n.localize("CEPHEUS.RollAttack"), callback: (e, btn) => btn.form.elements.difficulty.value },
+    const choices = Object.fromEntries(
+      Object.entries(CONFIG.CEPHEUS.difficulties).map(([k, v]) => [k, v.label])
+    );
+    return promptSelect({
+      title:    "CEPHEUS.SelectDifficulty",
+      label:    "CEPHEUS.SelectDifficulty",
+      choices,
+      selected: defaultDifficulty,
+      okLabel:  "CEPHEUS.RollAttack",
     });
   }
 
   async _promptRange(defaultRange = "short") {
-    const { DialogV2 } = foundry.applications.api;
-    const opts = Object.entries(CONFIG.CEPHEUS.spaceCombat.rangeBands)
-      .map(([k, v]) =>
-        `<option value="${k}" ${k === defaultRange ? "selected" : ""}>${game.i18n.localize(v)}</option>`
-      )
-      .join("");
-    return DialogV2.prompt({
-      window: { title: game.i18n.localize("CEPHEUS.SelectRange") },
-      content: `<div class="form-group"><label>${game.i18n.localize("CEPHEUS.SelectRange")}</label><select name="range">${opts}</select></div>`,
-      ok: { label: game.i18n.localize("CEPHEUS.RollAttack"), callback: (e, btn) => btn.form.elements.range.value },
+    return promptSelect({
+      title:    "CEPHEUS.SelectRange",
+      label:    "CEPHEUS.SelectRange",
+      choices:  CONFIG.CEPHEUS.spaceCombat.rangeBands,
+      selected: defaultRange,
+      okLabel:  "CEPHEUS.RollAttack",
     });
   }
 
@@ -133,33 +133,24 @@ export class CepheusActor extends Actor {
       : (options.difficulty ?? "average");
     if (!difficulty) return null;
 
-    const target      = CONFIG.CEPHEUS.difficulties[difficulty]?.target ?? 8;
-
-    const totalDm = skillLevel + charDm + woundPenalty;
-    const roll    = await new Roll(`2d6 + ${totalDm}`).evaluate();
-    const success = roll.total >= target;
+    const check = await evaluateCheck({ dm: skillLevel + charDm + woundPenalty, difficulty });
 
     const charLabel  = game.i18n.localize(CONFIG.CEPHEUS.characteristics[charKey] ?? "");
-    const diffLabel  = game.i18n.localize(CONFIG.CEPHEUS.difficulties[difficulty]?.label ?? "");
     const skillTag   = skillLevel < 0
       ? `${skillName} (unskilled ${skillLevel})`
       : `${skillName} ${skillLevel}`;
-    const sign       = charDm >= 0 ? `+${charDm}` : `${charDm}`;
 
-    const flavor = [
-      `<strong>${weaponItem.name}</strong> — Attack Roll`,
-      `<span style="font-size:0.85em;color:#aaa">${skillTag} / ${charLabel} DM${sign} / ${diffLabel} (${target}+)</span>`,
-      success
-        ? `<span style="color:#4caf50">✔ ${game.i18n.localize("CEPHEUS.Success")}</span>`
-        : `<span style="color:#f44336">✘ ${game.i18n.localize("CEPHEUS.Failure")}</span>`,
-    ].join("<br>");
-
-    await roll.toMessage({
+    await check.roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: this }),
-      flavor,
+      flavor: formatCheckFlavor({
+        title:   weaponItem.name,
+        kind:    "Attack Roll",
+        detail:  `${skillTag} / ${charLabel} DM${signed(charDm)} / ${check.diffLabel} (${check.target}+)`,
+        outcome: check,
+      }),
     });
 
-    return { roll, success };
+    return { roll: check.roll, success: check.success };
   }
 
   // ── Psionic rolls ────────────────────────────────────────────────────────
@@ -199,26 +190,21 @@ export class CepheusActor extends Actor {
       : (options.difficulty ?? "average");
     if (!difficulty) return null;
 
-    const target      = CONFIG.CEPHEUS.difficulties[difficulty]?.target ?? 8;
     const skillLevel  = skillItem.system.level ?? 0;
     const woundPenalty = this.system.woundPenalty ?? 0;
-    const totalDm     = skillLevel + psi.dm + woundPenalty;
-    const sign       = psi.dm >= 0 ? `+${psi.dm}` : `${psi.dm}`;
-    const diffLabel  = game.i18n.localize(CONFIG.CEPHEUS.difficulties[difficulty]?.label);
 
-    const roll    = await new Roll(`2d6 + ${totalDm}`).evaluate();
-    const success = roll.total >= target;
+    const check = await evaluateCheck({ dm: skillLevel + psi.dm + woundPenalty, difficulty });
 
-    const flavor = [
-      `<strong>${skillItem.name}</strong> — Psionic Roll`,
-      `<span style="font-size:0.85em;color:#aaa">PSI DM${sign} + Skill ${skillLevel} / Cost: ${cost} PSI / ${diffLabel} (${target}+)</span>`,
-      success
-        ? `<span style="color:#4caf50">✔ ${game.i18n.localize("CEPHEUS.Success")}</span>`
-        : `<span style="color:#f44336">✘ ${game.i18n.localize("CEPHEUS.Failure")}</span>`,
-    ].join("<br>");
-
-    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor: this }), flavor });
-    return { roll, success };
+    await check.roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor: formatCheckFlavor({
+        title:   skillItem.name,
+        kind:    "Psionic Roll",
+        detail:  `PSI DM${signed(psi.dm)} + Skill ${skillLevel} / Cost: ${cost} PSI / ${check.diffLabel} (${check.target}+)`,
+        outcome: check,
+      }),
+    });
+    return { roll: check.roll, success: check.success };
   }
 
   async recoverPsi(amount) {
@@ -231,27 +217,43 @@ export class CepheusActor extends Actor {
   // ── Damage rolls ─────────────────────────────────────────────────────────
 
   async rollDamage(weaponItem) {
-    const raw     = weaponItem.system.damage ?? "2D6";
-    const formula = raw.toLowerCase();
+    const raw = weaponItem.system.damage ?? "2d6";
 
     // Some damage entries are descriptive (e.g. "By grenade") — bail out gracefully.
-    if (!/\d+d\d+/.test(formula)) {
+    if (!isDiceFormula(raw)) {
       ui.notifications.info(`${weaponItem.name}: ${raw}`);
       return null;
     }
 
-    const roll = await new Roll(formula).evaluate();
-
-    const flavor = [
-      `<strong>${weaponItem.name}</strong> — Damage`,
-      `<span style="font-size:0.85em;color:#aaa">Roll damage then subtract target's armor</span>`,
-    ].join("<br>");
+    const roll = await new Roll(normalizeDiceFormula(raw)).evaluate();
 
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: this }),
-      flavor,
+      flavor: formatCheckFlavor({
+        title:  weaponItem.name,
+        kind:   "Damage",
+        detail: "Roll damage then subtract target's armor",
+      }),
     });
 
+    return roll;
+  }
+
+  // Creature natural attack: rolls system.attackDice flat — creatures have no
+  // skill items, so there is no skill/characteristic DM math (SRD stat-block
+  // convention). Lives here rather than on the sheet so macros can call it.
+  async rollCreatureAttack() {
+    const raw = this.system.attackDice ?? "2d6";
+    if (!isDiceFormula(raw)) {
+      ui.notifications.info(`${this.name}: ${raw}`);
+      return null;
+    }
+    const roll  = await new Roll(normalizeDiceFormula(raw)).evaluate();
+    const label = this.system.attackType || game.i18n.localize("CEPHEUS.AttackDice");
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor:  `<strong>${this.name}</strong> — ${label}`,
+    });
     return roll;
   }
 
@@ -320,10 +322,9 @@ export class CepheusActor extends Actor {
   async rollShipInitiative({ thrustAdvantage = false, tacticsEffect = 0 } = {}) {
     const dm   = (thrustAdvantage ? 1 : 0) + tacticsEffect;
     const roll = await new Roll(`2d6 + ${dm}`).evaluate();
-    const sign = dm >= 0 ? `+${dm}` : `${dm}`;
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: this }),
-      flavor:  `<strong>${this.name}</strong> — Ship Initiative (DM${sign})`,
+      flavor:  `<strong>${this.name}</strong> — Ship Initiative (DM${signed(dm)})`,
     });
     return roll;
   }
@@ -352,42 +353,40 @@ export class CepheusActor extends Actor {
       return null;
     }
 
-    const target          = CONFIG.CEPHEUS.difficulties[diffKey].target;
     const trackingPenalty = hits === 1 ? -2 : 0;
     const skillLevel      = options.skillLevel ?? 0;
     const dm              = options.dm ?? 0;
-    const totalDm          = skillLevel + dm + trackingPenalty;
 
-    const roll    = await new Roll(`2d6 + ${totalDm}`).evaluate();
-    const success = roll.total >= target;
-    const effect  = roll.total - target;
+    const check = await evaluateCheck({ dm: skillLevel + dm + trackingPenalty, difficulty: diffKey });
 
-    const diffLabel  = game.i18n.localize(CONFIG.CEPHEUS.difficulties[diffKey].label);
     const rangeLabel = game.i18n.localize(CONFIG.CEPHEUS.spaceCombat.rangeBands[range]);
-    const sign       = effect >= 0 ? `+${effect}` : `${effect}`;
 
-    const flavor = [
-      `<strong>${componentItem.name}</strong> — Ship Attack`,
-      `<span style="font-size:0.85em;color:#aaa">${rangeLabel} range / ${diffLabel} (${target}+)${trackingPenalty ? ` / tracking damaged DM${trackingPenalty}` : ""}</span>`,
-      success
-        ? `<span style="color:#4caf50">✔ ${game.i18n.localize("CEPHEUS.Success")} (Effect ${sign})</span>`
-        : `<span style="color:#f44336">✘ ${game.i18n.localize("CEPHEUS.Failure")}</span>`,
-    ].join("<br>");
-
-    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor: this }), flavor });
-    return { roll, success, effect };
+    await check.roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor: formatCheckFlavor({
+        title:   componentItem.name,
+        kind:    "Ship Attack",
+        detail:  `${rangeLabel} range / ${check.diffLabel} (${check.target}+)${trackingPenalty ? ` / tracking damaged DM${trackingPenalty}` : ""}`,
+        outcome: { success: check.success, extra: check.success ? ` (Effect ${signed(check.effect)})` : "" },
+      }),
+    });
+    return { roll: check.roll, success: check.success, effect: check.effect };
   }
 
   async rollShipWeaponDamage(componentItem) {
     const raw = componentItem.system.damage ?? "";
-    if (!/\d+d\d+/i.test(raw)) {
+    if (!isDiceFormula(raw)) {
       ui.notifications.info(`${componentItem.name}: no damage formula set.`);
       return null;
     }
-    const roll = await new Roll(raw).evaluate();
+    const roll = await new Roll(normalizeDiceFormula(raw)).evaluate();
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: this }),
-      flavor:  `<strong>${componentItem.name}</strong> — Weapon Damage<br><span style="font-size:0.85em;color:#aaa">Apply to the target with its "Apply Hit" action (subtracts armor automatically)</span>`,
+      flavor: formatCheckFlavor({
+        title:  componentItem.name,
+        kind:   "Weapon Damage",
+        detail: `Apply to the target with its "Apply Hit" action (subtracts armor automatically)`,
+      }),
     });
     return roll;
   }
@@ -401,7 +400,7 @@ export class CepheusActor extends Actor {
 
     const lines = [
       `<strong>${this.name}</strong> — Space Combat Damage`,
-      `<span style="font-size:0.85em;color:#aaa">Raw ${rawDamage} − Armor ${armor} = ${effective} effective</span>`,
+      `<span class="cepheus-chat-detail">Raw ${rawDamage} − Armor ${armor} = ${effective} effective</span>`,
     ];
 
     if (effective <= 0) {
@@ -423,7 +422,7 @@ export class CepheusActor extends Actor {
         ? "smallCraft"
         : (this.system.hullPoints.value > 0 ? "external" : "internal");
       const locationKey = CONFIG.CEPHEUS.spaceCombat.hitLocation[locRoll.total][column];
-      const label        = CONFIG.CEPHEUS.spaceCombat.locationLabels[locationKey];
+      const label        = game.i18n.localize(CONFIG.CEPHEUS.spaceCombat.locationLabels[locationKey]);
       const effectText   = await this._resolveShipHitLocation(locationKey, multiplier, { radiation });
       lines.push(`[${locRoll.total}] <strong>${label}</strong>${multiplier > 1 ? ` ×${multiplier}` : ""} — ${effectText}`);
     }
@@ -508,7 +507,7 @@ export class CepheusActor extends Actor {
 
     if (overflow > 0) {
       const redirected = await this._resolveShipHitLocation(def.subsequent, overflow, { radiation });
-      text += ` + overflow → ${sc.locationLabels[def.subsequent]}: ${redirected}`;
+      text += ` + overflow → ${game.i18n.localize(sc.locationLabels[def.subsequent])}: ${redirected}`;
     }
     return text;
   }
@@ -521,7 +520,7 @@ export class CepheusActor extends Actor {
 
     if (!candidates.length) {
       const redirected = await this._resolveShipHitLocation(def.subsequent, multiplier, { radiation });
-      return `No ${mount} systems aboard — redirected to ${sc.locationLabels[def.subsequent]}: ${redirected}`;
+      return `No ${mount} systems aboard — redirected to ${game.i18n.localize(sc.locationLabels[def.subsequent])}: ${redirected}`;
     }
 
     const component = candidates[Math.floor(Math.random() * candidates.length)];
@@ -532,7 +531,7 @@ export class CepheusActor extends Actor {
 
     if (overflow > 0) {
       const redirected = await this._resolveShipHitLocation(def.subsequent, overflow, { radiation });
-      text += ` + overflow → ${sc.locationLabels[def.subsequent]}: ${redirected}`;
+      text += ` + overflow → ${game.i18n.localize(sc.locationLabels[def.subsequent])}: ${redirected}`;
     }
     return text;
   }

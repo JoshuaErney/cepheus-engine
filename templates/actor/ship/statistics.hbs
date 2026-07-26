@@ -10,25 +10,25 @@
         <div class="form-group">
           <label>{{localize "CEPHEUS.JumpRating"}}</label>
           {{#if editable}}
-            <input type="number" name="system.jumpRating" value="{{jumpRating}}" min="0" max="6" />
+            <input type="number" name="system.jumpRating" value="{{system.jumpRating}}" min="0" max="6" />
           {{else}}
-            <span class="stat-value">{{jumpRating}}</span>
+            <span class="stat-value">{{system.jumpRating}}</span>
           {{/if}}
         </div>
         <div class="form-group">
           <label>{{localize "CEPHEUS.ManeuverRating"}}</label>
           {{#if editable}}
-            <input type="number" name="system.maneuverRating" value="{{maneuverRating}}" min="0" max="6" />
+            <input type="number" name="system.maneuverRating" value="{{system.maneuverRating}}" min="0" max="6" />
           {{else}}
-            <span class="stat-value">{{maneuverRating}}</span>
+            <span class="stat-value">{{system.maneuverRating}}</span>
           {{/if}}
         </div>
         <div class="form-group">
           <label>{{localize "CEPHEUS.PowerPlant"}}</label>
           {{#if editable}}
-            <input type="number" name="system.powerPlant" value="{{powerPlant}}" min="0" max="6" />
+            <input type="number" name="system.powerPlant" value="{{system.powerPlant}}" min="0" max="6" />
           {{else}}
-            <span class="stat-value">{{powerPlant}}</span>
+            <span class="stat-value">{{system.powerPlant}}</span>
           {{/if}}
         </div>
       </div>
@@ -36,11 +36,11 @@
       <div class="stat-row flexrow derived-row">
         <div class="derived-stat">
           <label>{{localize "CEPHEUS.FuelPerJump"}}</label>
-          <span>{{fuelPerJump}}T</span>
+          <span>{{system.fuelPerJump}}T</span>
         </div>
         <div class="derived-stat">
           <label>{{localize "CEPHEUS.FuelPerMonth"}}</label>
-          <span>{{fuelPerMonth}}T</span>
+          <span>{{system.fuelPerMonth}}T</span>
         </div>
       </div>
     </div>
@@ -53,14 +53,14 @@
         <div class="form-group">
           <label>{{localize "CEPHEUS.Armor"}}</label>
           {{#if editable}}
-            <input type="number" name="system.armor" value="{{armor}}" min="0" />
+            <input type="number" name="system.armor" value="{{system.armor}}" min="0" />
           {{else}}
-            <span class="stat-value">{{armor}}</span>
+            <span class="stat-value">{{system.armor}}</span>
           {{/if}}
         </div>
         <div class="form-group">
           <label>{{localize "CEPHEUS.Hardpoints"}}</label>
-          <span class="stat-value derived">{{hardpoints}}</span>
+          <span class="stat-value derived">{{system.hardpoints}}</span>
         </div>
       </div>
     </div>
@@ -73,22 +73,22 @@
         <div class="form-group">
           <label>{{localize "CEPHEUS.CargoCapacity"}}</label>
           {{#if editable}}
-            <input type="number" name="system.cargoCapacity" value="{{cargoCapacity}}" min="0" />
+            <input type="number" name="system.cargoCapacity" value="{{system.cargoCapacity}}" min="0" />
           {{else}}
-            <span class="stat-value">{{cargoCapacity}}T</span>
+            <span class="stat-value">{{system.cargoCapacity}}T</span>
           {{/if}}
         </div>
         <div class="form-group">
           <label>{{localize "CEPHEUS.CargoUsed"}}</label>
           {{#if editable}}
-            <input type="number" name="system.cargoUsed" value="{{cargoUsed}}" min="0" />
+            <input type="number" name="system.cargoUsed" value="{{system.cargoUsed}}" min="0" />
           {{else}}
-            <span class="stat-value">{{cargoUsed}}T</span>
+            <span class="stat-value">{{system.cargoUsed}}T</span>
           {{/if}}
         </div>
         <div class="form-group">
           <label>{{localize "CEPHEUS.FreeCargo"}}</label>
-          <span class="stat-value derived">{{freeCargo}}T</span>
+          <span class="stat-value derived">{{system.freeCargo}}T</span>
         </div>
       </div>
 
@@ -96,17 +96,17 @@
         <div class="form-group">
           <label>{{localize "CEPHEUS.MinCrew"}}</label>
           {{#if editable}}
-            <input type="number" name="system.crewMin" value="{{crewMin}}" min="0" />
+            <input type="number" name="system.crewMin" value="{{system.crewMin}}" min="0" />
           {{else}}
-            <span class="stat-value">{{crewMin}}</span>
+            <span class="stat-value">{{system.crewMin}}</span>
           {{/if}}
         </div>
         <div class="form-group">
           <label>{{localize "CEPHEUS.Credits"}}</label>
           {{#if editable}}
-            <input type="number" name="system.credits" value="{{credits}}" min="0" />
+            <input type="number" name="system.credits" value="{{system.credits}}" min="0" />
           {{else}}
-            <span class="stat-value">Cr{{credits}}</span>
+            <span class="stat-value">Cr{{system.credits}}</span>
           {{/if}}
         </div>
       </div>

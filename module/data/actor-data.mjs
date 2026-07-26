@@ -1,4 +1,5 @@
 import { computeCharacteristicDerived, computeWoundState } from "../helpers/characteristics.mjs";
+import { CEPHEUS } from "../config/config.mjs";
 
 const { fields } = foundry.data;
 
@@ -87,14 +88,14 @@ export class CreatureData extends foundry.abstract.TypeDataModel {
         int: characteristicField(5),
       }),
       armor:        new fields.NumberField({ required: true, integer: true, min: 0, initial: 0 }),
-      attackDice:   new fields.StringField({ initial: "2D6" }),
+      attackDice:   new fields.StringField({ initial: "2d6" }),
       attackType:   new fields.StringField({ initial: "" }),
       instinct:     new fields.StringField({ initial: "" }),
       pack:         new fields.StringField({ initial: "" }),
       speed:        new fields.NumberField({ required: true, integer: true, min: 0, initial: 6 }),
       behaviorType: new fields.StringField({
         initial: "carnivore",
-        choices: ["carnivore", "herbivore", "omnivore", "scavenger", "hijacker", "intermittent", "filter"],
+        choices: Object.keys(CEPHEUS.behaviorTypes),
       }),
       notes: new fields.HTMLField({ initial: "" }),
     };

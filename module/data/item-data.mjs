@@ -1,4 +1,10 @@
+import { CEPHEUS } from "../config/config.mjs";
+
 const { fields } = foundry.data;
+
+// Enum choices derive from the config key lists so a new weapon type, mount,
+// or characteristic only has to be added in config.mjs (+ lang/en.json).
+const CHARACTERISTIC_KEYS = Object.keys(CEPHEUS.characteristics);
 
 export class SkillData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
@@ -8,7 +14,7 @@ export class SkillData extends foundry.abstract.TypeDataModel {
       }),
       characteristic: new fields.StringField({
         initial: "int",
-        choices: ["str", "dex", "end", "int", "edu", "soc", "psi"],
+        choices: CHARACTERISTIC_KEYS,
       }),
       psionic: new fields.BooleanField({ initial: false }),
       costPsi: new fields.NumberField({ required: true, integer: true, min: 0, initial: 0 }),
@@ -64,7 +70,8 @@ export class AugmentData extends foundry.abstract.TypeDataModel {
       characteristic: new fields.StringField({
         initial: "",
         blank: true,
-        choices: ["", "str", "dex", "end", "int", "edu", "soc"],
+        // Augments boost physical/mental characteristics only, never PSI.
+        choices: ["", ...CHARACTERISTIC_KEYS.filter(k => k !== "psi")],
       }),
       bonus:       new fields.NumberField({ required: true, integer: true, initial: 0 }),
       tl:          new fields.NumberField({ required: true, integer: true, min: 0, initial: 0 }),
@@ -87,9 +94,9 @@ export class ShipComponentData extends foundry.abstract.TypeDataModel {
       weaponType: new fields.StringField({
         initial: "",
         blank: true,
-        choices: ["", "pulseLaser", "beamLaser", "particleBeam", "fusionGun", "mesonGun", "sandcaster"],
+        choices: Object.keys(CEPHEUS.spaceCombat.weaponTypes),
       }),
-      mount:  new fields.StringField({ initial: "", blank: true, choices: ["", "turret", "bay"] }),
+      mount:  new fields.StringField({ initial: "", blank: true, choices: Object.keys(CEPHEUS.spaceCombat.mounts) }),
       damage: new fields.StringField({ initial: "" }),
       // Turret/Bay damage track (SRD p.159-160): 0=undamaged, 1=DM-2 to
       // attacks, 2=disabled, 3=destroyed. Further hits redirect to the ship's

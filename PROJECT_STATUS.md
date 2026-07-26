@@ -5,9 +5,14 @@ an AI assistant (or a human) can load it and understand what exists, how it work
 what's left — without re-reading the whole codebase. Complements `CLAUDE.md` (which
 covers *conventions and how-to*); this file covers *what's actually built*.
 
-Last reviewed: 2026-07-09. Re-verify against the code before trusting specifics — this is
+Last reviewed: 2026-07-26. Re-verify against the code before trusting specifics — this is
 a snapshot, not a live source of truth. A git repo was initialized 2026-07-08
 (see `git log`); treat file line numbers here as approximate.
+
+2026-07-26: a structural-consistency pass reorganized shared plumbing (base actor
+sheet class, dialog helpers, unified 2d6 check pipeline, config-derived enum
+choices, name-based pack sync). Descriptions below reflect the post-refactor
+state; none of it has been exercised in a live Foundry session yet (see §4).
 
 ---
 
@@ -50,7 +55,7 @@ mindmap
       5 ready-to-use macros (roll-on-table, apply/heal damage, ship initiative,
         full recovery — all selected-token-based)
     Tests
-      bun test — 81 tests, pure-logic modules + data/localization only (no
+      bun test — 86 tests, pure-logic modules + data/localization only (no
       Foundry-document/sheet/chargen coverage — see §2 tests/)
     Known gaps
       No CI (tests exist locally but nothing runs them on push/PR)
@@ -63,11 +68,13 @@ mindmap
 ```
 system.json           Manifest. v0.1.0, compat min/verified "14". 7 packs registered
                        (skills/weapons/armor/equipment/augments/tables/macros).
-cepheus.mjs            Entry point. Registers doc classes, data models, sheets (per
-                       actor type — character/npc/creature/ship each get a distinct
-                       sheet class), Handlebars helpers. On `ready` (GM only): seeds
-                       empty compendiums from the seed files, then patches the skills
-                       pack with any seed entries missing from an existing world's copy.
+cepheus.mjs            Entry point. Registers doc classes (incl. CepheusCombatant for
+                       ship initiative), data models, sheets (per actor type —
+                       character/npc/creature/ship each get a distinct sheet class),
+                       Handlebars helpers. On `ready` (GM only): syncPack() adds any
+                       seed entries missing by name from each of the seven packs —
+                       covers both first-launch seeding and system updates that
+                       extend a seed file reaching existing worlds.
 
 module/config/config.mjs
   CONFIG.CEPHEUS = { characteristics, characteristicsAbbr, difficulties (6 tiers,
@@ -76,9 +83,14 @@ module/config/config.mjs
   CEPHEUS.spaceCombat: rangeBands (7), weaponTypes (6), mounts (turret/bay),
   attackDifficulty (weaponType × range → difficulty key, SRD p.149),
   hitLocation (2D6 → external/internal/smallCraft location key, SRD p.159),
-  locationLabels, subsystems (per-location 3-tier effect text + overflow
-  target, SRD p.159-161), mountHits (turret/bay 3-tier tracks), crewDamage
-  (2D6 → Crew Damage table entry, SRD p.161).
+  locationLabels (i18n keys — single label source for sheet subsystem rows AND
+  hit-resolution chat, localized at use), subsystems (per-location 3-tier
+  effect text + overflow target, SRD p.159-161; the ship sheet derives its
+  damage-track rows from these keys), mountHits (turret/bay 3-tier tracks),
+  crewDamage (2D6 → Crew Damage table entry, SRD p.161).
+  Data-model enum `choices` (characteristics, weaponTypes, mounts,
+  behaviorTypes) derive from these key lists — config.mjs + lang/en.json are
+  the only places to touch when adding an enum value.
 
 module/data/actor-data.mjs
   characteristicField(initial)   → { max, damage } SchemaField shared by all
@@ -103,7 +115,7 @@ module/data/actor-data.mjs
     + notes only (no chargen fields)
   CreatureData (own TypeDataModel, not Humanoid)
     - characteristics: str/dex/end/int only (no edu/soc/psi)
-    - armor, attackDice ("2D6"), attackType, instinct, pack, speed, behaviorType
+    - armor, attackDice ("2d6"), attackType, instinct, pack, speed, behaviorType
       (enum: carnivore/herbivore/omnivore/scavenger/hijacker/intermittent/filter),
       notes
     - shares computeCharacteristicDerived/computeWoundState with HumanoidData
@@ -145,8 +157,11 @@ module/documents/actor.mjs — CepheusActor
   rollCharacteristic(key): 2d6 + char.dm + woundPenalty → chat message.
   rollSkill(item, {characteristicKey, difficulty}): 2d6 + char.dm + skill.level +
     woundPenalty vs difficulty target; posts success/failure to chat.
-  _promptDifficulty() / _promptRange(): DialogV2 select-boxes for shift-click
-    difficulty override / space-combat range band selection.
+  _promptDifficulty() / _promptRange(): promptSelect (helpers/dialogs.mjs)
+    pickers for shift-click difficulty override / space-combat range band.
+  All check-style rolls (rollSkill/rollAttack/rollPsionic/rollShipAttack) run
+    through helpers/dice.mjs evaluateCheck() + formatCheckFlavor() — one
+    implementation of the 2d6-vs-target mechanic and one chat-card format.
   rollAttack(weaponItem, {characteristicKey, difficulty, promptDifficulty}):
     infers STR (melee) vs DEX (ranged) from `range.startsWith("Melee")`; totals
     skill level (via getSkillLevel, so unskilled use is penalized) + char DM +
@@ -159,6 +174,8 @@ module/documents/actor.mjs — CepheusActor
   rollDamage(weaponItem): rolls the weapon's damage string; bails gracefully (chat
     info message, no roll) if the damage field is descriptive text instead of a
     dice formula (e.g. "By grenade").
+  rollCreatureAttack(): flat system.attackDice roll for creatures (no skill/DM
+    math) — on the document, not the sheet, so macros can reach it.
   applyDamage(total) / healDamage(total): distributes damage across
     END→STR→DEX (damage) or DEX→STR→END (heal) in that priority order, respecting
     each characteristic's current remaining capacity.
@@ -190,8 +207,28 @@ module/documents/actor.mjs — CepheusActor
 module/documents/item.mjs   (9 lines) — CepheusItem, currently just the bare
   subclass with no overrides (hook point for future item-level logic).
 
-module/helpers/dice.mjs — rollCheck({dm, difficulty, flavor, speaker}): standalone
-  2d6+dm vs difficulty helper, usable from macros independent of an actor.
+module/documents/combatant.mjs — CepheusCombatant: _getInitiativeFormula()
+  returns flat "2d6" for ship actors (the global dex-based tracker formula
+  can't apply — ships have no characteristics; situational SRD modifiers come
+  from the ship sheet's Roll Initiative prompt instead).
+
+module/helpers/dice.mjs — the canonical 2d6 pipeline. evaluateCheck({dm,
+  difficulty}) rolls vs the difficulty table; formatCheckFlavor() builds the
+  standard chat block (title — kind / muted detail / ✔✘ result, styled by
+  cepheus-chat-* CSS classes, no inline styles); rollCheck() is the standalone
+  macro-friendly wrapper. Pure, unit-tested string helpers:
+  normalizeDiceFormula/isDiceFormula (seed data mixes "2D6"/"2d6"; some damage
+  entries are descriptive text), signed() for DM formatting. Every check-style
+  roll in actor.mjs runs through this module.
+
+module/helpers/dialogs.mjs — single home for input dialogs: promptForm (typed
+  field list → DialogV2, returns {name: value} or null), promptNumber,
+  promptSelect. Labels pass through game.i18n.localize (unknown strings pass
+  unchanged). All sheet/document prompts route through these.
+
+module/helpers/form.mjs — preventEnterSubmit(): blocks the native Enter-key
+  form submit that double-fires alongside submitOnChange autosave; wired by
+  the base actor sheet's _onRender and the item sheet.
 
 module/helpers/spacecombat.mjs — pure functions used by actor.mjs's ship-combat
   methods: damageToHits(damage) (Space Combat Damage table, SRD p.159) and
@@ -209,48 +246,58 @@ module/helpers/handlebars.mjs — registers: cepheusSign (± formatting), cepheu
 
 ### Sheets
 
+All four actor sheets extend a shared base; templates read actor data as
+`{{system.x}}` (the base passes `this.actor.system` into context) rather than
+sheets re-flattening fields.
+
 ```
-module/sheets/actor-sheet.mjs   (198 lines) — CepheusActorSheet (character)
+module/sheets/base-actor-sheet.mjs — CepheusBaseActorSheet (shared base)
+  Owns: _getTabs() driven by each subclass's static TABS list (labels resolve
+  to CEPHEUS.Tab<Id>; first entry = initial tab), _preparePartContext tab
+  wiring, _prepareContext (tabs + system), _onRender → preventEnterSubmit,
+  form.submitOnChange, and the actions identical across actor types:
+  createItem (data-type attr), editItem, deleteItem, applyDamage, healDamage
+  (promptNumber dialogs), fullRecovery.
+
+module/sheets/actor-sheet.mjs — CepheusActorSheet (character) extends base
   PARTS: header, tabs, characteristics, skills, equipment, biography, notes.
-  actions: startChargen, rollCharacteristic, rollSkill, rollAttack, rollDamage,
-  rollPsionic, testPsionics, recoverPsi, createItem, editItem, deleteItem,
-  applyDamage, healDamage, fullRecovery.
-  Context includes `augments` (itemTypes.augment), rendered as an Augments section
-  in equipment.hbs (list + create button), same pattern as Weapons/Armor/Equipment.
+  Own actions: startChargen, rollCharacteristic, rollSkill, rollAttack,
+  rollDamage, rollPsionic, testPsionics, recoverPsi.
+  Context adds itemTypes lists (skills/weapons/armor/equipment/augments),
+  charConfig, and isCharacter — header.hbs gates the chargen button on it
+  (the template is shared with NPCs, whose schema lacks chargen fields).
 
 module/sheets/npc-sheet.mjs — CepheusNpcSheet extends CepheusActorSheet.
-  Same PARTS minus biography, swaps notes template for an NPC-specific one.
-  Reuses all inherited action handlers (chargen action is inherited but presumably
-  unused/hidden in the npc header template — verify template before assuming it's
-  reachable).
+  Overrides PARTS (drops biography, npc-specific notes), TABS, classes,
+  position — nothing else; all handlers and context inherited.
 
-module/sheets/creature-sheet.mjs   (127 lines) — CepheusCreatureSheet
-  Own PARTS (header, tabs, stats, notes) — does NOT extend CepheusActorSheet.
-  actions: rollAttack (rolls system.attackDice flat, no skill/DM math — creatures
-  don't have skills), applyDamage, healDamage, fullRecovery.
+module/sheets/creature-sheet.mjs — CepheusCreatureSheet extends base
+  PARTS: header, tabs, stats, notes. Own action: rollAttack → delegates to
+  actor.rollCreatureAttack(). Damage/heal/recovery come from the base.
 
-module/sheets/ship-sheet.mjs — CepheusShipSheet
-  Own PARTS (header, tabs, statistics, components, notes).
-  actions: createComponent, editItem, deleteItem, rollInitiative, rollAttack,
-  rollWeaponDamage, applyShipHit, adjustSystemHit, adjustMountHit.
-  rollInitiative/applyShipHit open small DialogV2 prompts (thrust advantage +
-  tactics effect; raw damage + radiation flag) then delegate to the matching
-  CepheusActor ship-combat method. rollAttack/rollWeaponDamage target a specific
-  shipComponent weapon item. adjustSystemHit/adjustMountHit are manual ±1 GM
-  overrides for the 0-3 subsystem/turret/bay damage tracks, rendered in
-  statistics.hbs (Space Combat section) and components.hbs respectively.
-  statistics.hbs's Space Combat section replaces the old (unreachable —
-  no template ever called them) applyHullDamage/applyStructureDamage actions.
+module/sheets/ship-sheet.mjs — CepheusShipSheet extends base
+  PARTS: header, tabs, statistics, components, notes.
+  Own actions: rollInitiative, rollAttack, rollWeaponDamage, applyShipHit,
+  adjustSystemHit, adjustMountHit. rollInitiative/applyShipHit use promptForm
+  (thrust advantage + tactics effect; raw damage + radiation flag) then
+  delegate to the matching CepheusActor ship-combat method. The Add Component
+  button uses the base createItem with data-type="shipComponent".
+  systemHitRows derive from CEPHEUS.spaceCombat.subsystems keys +
+  locationLabels — adding a subsystem needs only a config entry and a
+  <key>Hits schema field.
 
-module/sheets/item-sheet.mjs   (42 lines) — CepheusItemSheet, one sheet class for
+module/sheets/item-sheet.mjs — CepheusItemSheet, one sheet class for
   all 6 item types; body.hbs branches per itemType. rollAttack/rollDamage actions
-  delegate to the owning actor if the item is embedded.
+  delegate to the owning actor if the item is embedded. (Own hierarchy —
+  ItemSheetV2, not the actor base — but same submitOnChange/preventEnterSubmit
+  wiring.)
 
 module/apps/chargen.mjs   (491 lines) — CepheusChargenApp (ApplicationV2)
   Full lifepath wizard, steps: characteristics → career → terms (loop) →
   musterout → review/apply.
-  - Characteristics: roll-all or roll-individual buttons, or manual entry
-    (clamped 1-15 on advance).
+  - Characteristics: auto-rolled before first render (free), then a shared
+    3-reroll pool covers individual rerolls and Reroll All; no manual entry.
+    UPP key list (CHAR_KEYS) and abbreviations derive from config.mjs.
   - Career: select from CAREERS, roll qualification (auto-pass for Drifter),
     fail-forward into Drifter on a failed qualification roll.
   - Per term: survival roll (failure ends career immediately, still counts the
@@ -328,7 +375,7 @@ Scientist, Scout, Surface System Defense, Technician.
 
 ### Localization (`lang/en.json`)
 
-187 keys under `TYPES.*` and `CEPHEUS.*`. Verified complete against every
+193 keys under `TYPES.*` and `CEPHEUS.*`. Verified complete against every
 literal `{{localize "CEPHEUS.X"}}` call in templates/JS — no missing keys as of
 last review (dynamic keys like `CEPHEUS.Tab${id}` / `CEPHEUS.Wound${state}` were
 checked by hand against their possible expansions and all resolve). Chat-message
@@ -339,7 +386,7 @@ only template-rendered UI text and dialog labels go through `lang/en.json`.
 
 ### Tests (`tests/`, run via `bun test`)
 
-81 tests, no test dependencies beyond the `bun` binary itself (`bun:test` is
+86 tests, no test dependencies beyond the `bun` binary itself (`bun:test` is
 built in). `bunfig.toml` preloads `tests/setup.mjs`, which stubs only
 `Math.clamp` and `CONFIG.CEPHEUS` (imported from the real config.mjs, not
 duplicated) — the minimal slice of the Foundry runtime the pure-logic modules
@@ -352,6 +399,8 @@ for this suite (see Known Issue 1 re: not yet exercised live).
 tests/setup.mjs               Preload: Math.clamp polyfill + CONFIG.CEPHEUS stub.
 tests/spacecombat.test.mjs    damageToHits() against every SRD Space Combat
                                Damage table boundary; applyTieredHit() overflow math.
+tests/dice.test.mjs           normalizeDiceFormula/isDiceFormula (case/whitespace,
+                               descriptive-text rejection) and signed() formatting.
 tests/characteristics.test.mjs computeCharacteristicDerived()/computeWoundState()
                                against hand-built characteristic objects — DM table
                                edges, all 5 wound-state tiers.
@@ -411,6 +460,17 @@ tests/localization.test.mjs   Every statically-referenced `CEPHEUS.*` localize k
    draw are summed (`usedTonnage`/`usedPower`) but never validated against
    `displacement`/`powerPlant` — a ship can be built over-budget with no warning. Applies
    equally to the pre-existing non-weapon components and doesn't block space combat.
+
+Resolved 2026-07-26 (structural-consistency pass): duplicated sheet plumbing
+(four sheets now share CepheusBaseActorSheet), eight hand-rolled DialogV2
+prompts (helpers/dialogs.mjs; macros use the game.cepheus API), five parallel
+implementations of the 2d6 check + inline-styled chat HTML (helpers/dice.mjs +
+cepheus-chat-* classes), enum choices duplicated between config and schemas,
+the dual subsystem label systems (locationLabels i18n keys are now the single
+source), creature attack living on the sheet, flattened-vs-system context
+conventions, the ungated chargen button on NPC sheets, ships hitting the
+dex-based tracker formula (CepheusCombatant), and skills-only pack patching
+(syncPack covers all seven packs).
 
 Resolved since the last review (2026-07-08 → 2026-07-09): ship damage buttons
 writing a nonexistent schema field, augments being unreachable from actor sheets,

@@ -17,23 +17,23 @@
     <div class="header-row flexrow">
       <div class="upp-block">
         <span class="upp-label">{{localize "CEPHEUS.UPP"}}</span>
-        <span class="upp-value">{{upp}}</span>
+        <span class="upp-value">{{system.upp}}</span>
       </div>
 
-      <div class="wound-badge wound-{{woundState}}">
-        {{localize (concat "CEPHEUS.Wound" woundState)}}
-        {{#if woundPenalty}}<span class="wound-penalty">({{cepheusSign woundPenalty}} all checks)</span>{{/if}}
+      <div class="wound-badge wound-{{system.woundState}}">
+        {{localize (concat "CEPHEUS.Wound" system.woundState)}}
+        {{#if system.woundPenalty}}<span class="wound-penalty">({{cepheusSign system.woundPenalty}} all checks)</span>{{/if}}
       </div>
     </div>
 
     <div class="header-meta flexrow">
-      {{#if document.system.age}}
+      {{#if system.age}}
         <div class="meta-item">
           <label>{{localize "CEPHEUS.Age"}}</label>
           {{#if editable}}
-            <input type="number" name="system.age" value="{{document.system.age}}" min="18" />
+            <input type="number" name="system.age" value="{{system.age}}" min="18" />
           {{else}}
-            <span>{{document.system.age}}</span>
+            <span>{{system.age}}</span>
           {{/if}}
         </div>
       {{/if}}
@@ -41,29 +41,33 @@
       <div class="meta-item">
         <label>{{localize "CEPHEUS.Credits"}}</label>
         {{#if editable}}
-          <input type="number" name="system.credits" value="{{credits}}" min="0" />
+          <input type="number" name="system.credits" value="{{system.credits}}" min="0" />
         {{else}}
-          <span>{{credits}}</span>
+          <span>{{system.credits}}</span>
         {{/if}}
       </div>
 
-      {{#if document.system.pension}}
+      {{#if system.pension}}
         <div class="meta-item">
           <label>{{localize "CEPHEUS.Pension"}}</label>
           {{#if editable}}
-            <input type="number" name="system.pension" value="{{document.system.pension}}" min="0" />
+            <input type="number" name="system.pension" value="{{system.pension}}" min="0" />
           {{else}}
-            <span>{{document.system.pension}}</span>
+            <span>{{system.pension}}</span>
           {{/if}}
         </div>
       {{/if}}
 
-      <div class="meta-item">
-        <button type="button" class="chargen-btn" data-action="startChargen"
-                title="{{localize 'CEPHEUS.ChargenTitle'}}">
-          <i class="fas fa-id-card"></i> {{localize "CEPHEUS.Chargen"}}
-        </button>
-      </div>
+      {{!-- Chargen is character-only: the template is shared with NPCs, whose
+            schema has none of the fields the chargen apply step writes. --}}
+      {{#if isCharacter}}
+        <div class="meta-item">
+          <button type="button" class="chargen-btn" data-action="startChargen"
+                  title="{{localize 'CEPHEUS.ChargenTitle'}}">
+            <i class="fas fa-id-card"></i> {{localize "CEPHEUS.Chargen"}}
+          </button>
+        </div>
+      {{/if}}
 
       <div class="meta-item damage-controls">
         <button type="button" class="dmg-btn" data-action="applyDamage"

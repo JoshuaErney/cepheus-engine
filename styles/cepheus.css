@@ -1421,3 +1421,20 @@
   color: #e0f4fc;
   font-weight: 500;
 }
+
+/* ==== Chat cards ========================================================= */
+/* Global (not scoped to .cepheus-engine): chat messages render inside
+   Foundry's chat log, outside the sheet application. */
+
+.cepheus-chat-detail {
+  font-size: 0.85em;
+  color: #aaa;
+}
+
+.cepheus-chat-success {
+  color: #4caf50;
+}
+
+.cepheus-chat-fail {
+  color: #f44336;
+}
