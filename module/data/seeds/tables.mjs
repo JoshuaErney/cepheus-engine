@@ -15,6 +15,26 @@ function textResults(entries) {
   }));
 }
 
+// A result that sends the draw to another RollTable in this same pack — for
+// chained sub-tables (e.g. Starship Encounters [9] "Hostile Vessel" →
+// draw again on a Hostile Vessel Type table). The referenced table's real
+// document _id doesn't exist yet at seed-authoring time (it's assigned when
+// the pack is first built), so this carries a name-based placeholder in a
+// flag; seed-sync.mjs's resolveTableReferences() patches `documentId` once
+// every table in the pack has been created.
+function tableResults(entries) {
+  // entries: [range, subTableName]
+  return entries.map(([range, subTableName]) => ({
+    type: "pack",
+    documentCollection: "cepheus-engine.tables",
+    documentId: null,
+    text: subTableName,
+    range: [range, range],
+    weight: 1,
+    flags: { "cepheus-engine": { subTableRef: subTableName } },
+  }));
+}
+
 export const TABLES_SEED = [
   {
     name: "Random Encounters",
