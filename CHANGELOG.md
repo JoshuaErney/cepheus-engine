@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [0.2.0] - 2026-08-18
 
 Adds the remaining SRD Chapter 10 space combat systems: missiles, sand, screens, and
 abstract boarding actions. None of this has been exercised in a live Foundry session yet
