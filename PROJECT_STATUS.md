@@ -9,6 +9,24 @@ Last reviewed: 2026-08-18. Re-verify against the code before trusting specifics 
 a snapshot, not a live source of truth. A git repo was initialized 2026-07-08
 (see `git log`); treat file line numbers here as approximate.
 
+2026-08-18 (same day, third follow-up): added the 10 narrower SRD "X Encounter Type"
+sub-tables and the 1D6 Animal Encounter Template that §5 previously listed as not included,
+and — since those sub-tables are useless without it — actual chained-draw behavior
+(`helpers/tables.mjs` `drawTableChained()`, wired into the "Roll on Table" macro) rather than
+just the seed-authoring plumbing for it that already existed unused. See the `tables` pack
+row in §2 for the full list and a migration caveat: worlds already running an earlier system
+version keep their old, non-chaining "Starship Encounters" table after upgrading, since
+`syncPack()` only adds missing-by-name entries and never rewrites an existing one.
+
+2026-08-18 (same day, second follow-up): added the remaining SRD Chapter 10 space combat
+systems that §5 previously listed as "not yet started" — missiles (launch/impact/point
+defense), sand (offensive + defensive Fire Sand), screens (Trigger Screens), and Abstract
+Boarding Rules. See §2's actor.mjs/config.mjs/item-data.mjs/ship-sheet.mjs entries and §3 for
+what was built, and §4 for the judgment calls this required (mirroring the project's existing
+convention of documenting SRD ambiguities in code, e.g. `damageToHits()`'s damage>44 case).
+Not yet exercised in a live Foundry session — static review + `bun test` only, same caveat as
+every other addition since the 07-26 structural pass until it's actually clicked through.
+
 2026-08-18: release-prep pass — added LICENSE (MIT, for original code),
 OPEN_GAME_LICENSE.txt (verbatim OGL v1.0a + Section 15 copyright chain,
 extracted from the SRD PDF), README.md (with the required Cepheus Engine
@@ -56,7 +74,8 @@ mindmap
       Wound states (healthy/lightly/seriously/mortally/dead)
       Psionics (PSI pool, cost-per-use, recovery)
       Ship tonnage/fuel/power math
-      Space combat (initiative, weapon attack/damage, full hit-location resolution)
+      Space combat (initiative, weapon attack/damage, full hit-location resolution,
+        missiles, point defense, sand, screens, abstract boarding actions)
     Character generation
       6-characteristic roll/entry
       24-career lifepath loop
@@ -68,12 +87,13 @@ mindmap
       9 armors
       121 equipment items
       12 augments (homebrew, seeded)
-      5 GM rollable tables (SRD-sourced: Random/Patron/Rumor encounters, Starship
-        Encounters, Animal Encounter template)
-      5 ready-to-use macros (roll-on-table, apply/heal damage, ship initiative,
-        full recovery — all selected-token-based)
+      16 GM rollable tables (SRD-sourced: Random/Patron/Rumor encounters, chained
+        Starship Encounters + 10 vessel-type sub-tables, 1D6 + 2D6 Animal Encounter
+        templates)
+      6 ready-to-use macros (roll-on-table [chains sub-tables automatically],
+        apply/heal damage, ship initiative, full recovery, create campaign folders)
     Tests
-      bun test — 86 tests, pure-logic modules + data/localization only (no
+      bun test — 101 tests, pure-logic modules + data/localization only (no
       Foundry-document/sheet/chargen coverage — see §2 tests/)
     Known gaps
       background.jpg pulled from system.json/repo — unverified license, needs
@@ -99,14 +119,18 @@ module/config/config.mjs
   CONFIG.CEPHEUS = { characteristics, characteristicsAbbr, difficulties (6 tiers,
   targets 4/6/8/10/12/14), dmByValue (index 0-15 → DM -3..+2), behaviorTypes (7
   creature behavior enums), spaceCombat (see below) }.
-  CEPHEUS.spaceCombat: rangeBands (7), weaponTypes (6), mounts (turret/bay),
-  attackDifficulty (weaponType × range → difficulty key, SRD p.149),
-  hitLocation (2D6 → external/internal/smallCraft location key, SRD p.159),
-  locationLabels (i18n keys — single label source for sheet subsystem rows AND
-  hit-resolution chat, localized at use), subsystems (per-location 3-tier
-  effect text + overflow target, SRD p.159-161; the ship sheet derives its
+  CEPHEUS.spaceCombat: rangeBands (7), weaponTypes (7, incl. "missile"), mounts (turret/bay),
+  attackDifficulty (weaponType × range → difficulty key, SRD p.149 — missile row is a
+  documented judgment call, see §3), hitLocation (2D6 → external/internal/smallCraft
+  location key, SRD p.159), locationLabels (i18n keys — single label source for sheet
+  subsystem rows AND hit-resolution chat, localized at use), subsystems (per-location
+  3-tier effect text + overflow target, SRD p.159-161; the ship sheet derives its
   damage-track rows from these keys), mountHits (turret/bay 3-tier tracks),
-  crewDamage (2D6 → Crew Damage table entry, SRD p.161).
+  crewDamage (2D6 → Crew Damage table entry, SRD p.161), missileTypes
+  (standard/smart/nuclear metadata: label + smart/nuclear behavior flags),
+  missileRangeTurns (SRD Missile Launch Range table, p.156 — turns to impact by
+  range, null at Adjacent/Close), screenTypes (meson/nuclear metadata, descriptive
+  only — the mechanical effect is resolved by rollShipTriggerScreens()).
   Data-model enum `choices` (characteristics, weaponTypes, mounts,
   behaviorTypes) derive from these key lists — config.mjs + lang/en.json are
   the only places to touch when adding an enum value.
@@ -162,9 +186,13 @@ module/data/item-data.mjs
   AugmentData:    characteristic (nullable enum), bonus, tl, cost, description
                    (no `mass` field, unlike the other physical item types)
   ShipComponentData: componentType (free string, not enum), tonnage, powerRequired,
-                   cost, weaponType (nullable enum, "" = not a weapon), mount
-                   ("" / turret / bay), damage (dice string), hits (0-3 turret/bay
-                   damage track), description
+                   cost, weaponType (nullable enum, "" = not a weapon, incl. "missile"),
+                   mount ("" / turret / bay), damage (dice string), hits (0-3 turret/bay
+                   damage track), ammo (missiles-in-magazine or sand canisters — GM sets
+                   the starting count by hand, no seed data), missileType (standard/
+                   smart/nuclear, only meaningful when weaponType is "missile"),
+                   screenType (nullable enum "" / meson / nuclear — independent of
+                   weaponType; screens aren't weapons), description
 
 module/documents/actor.mjs — CepheusActor
   prepareDerivedData(): for ships, sums itemTypes.shipComponent into usedTonnage /
@@ -221,7 +249,45 @@ module/documents/actor.mjs — CepheusActor
     beyond tier 3 redirect to Hull or Structure per the SRD's "Subsequent Hits"
     rule. Posts one consolidated chat message per call.
   _resolveShipHitLocation / _applyShipMountHit / _rollShipCrewDamage: internal
-    orchestration helpers for the above.
+    orchestration helpers for the above. _rollHitEvents(events, column, opts):
+    extracted from applyShipDamage's roll-Hit-Location-per-event loop so
+    rollShipBoardingRound() can reuse it against a forced "internal" column.
+
+  Missiles/sand/screens/boarding (SRD p.155-157) — all resolved as further
+  manual, chat-driven GM steps, matching every other ship-combat method above
+  rather than introducing new automated/scheduled state:
+  rollShipMissileLaunch(componentItem, {range,skillLevel,dm}): the launch
+    check; converts Effect to an impact to-hit target via
+    helpers/spacecombat.mjs missileToHitTarget(), consumes ammo (12/bay,
+    1/turret), and reports flight time (CEPHEUS.spaceCombat.missileRangeTurns)
+    for the GM to track — no in-Foundry turn scheduler exists to auto-resolve
+    the SRD's multi-turn missile flight.
+  rollShipMissileImpact(componentItem, {toHitTarget,reactionDM,missileType}):
+    the GM-triggered second step; smart missiles always need 8+; on a hit,
+    calls rollShipWeaponDamage() (still a separate step from the target's own
+    Apply Hit, like every other weapon).
+  rollShipPointDefense(componentItem, {skillLevel,dm,attemptNumber}): Turret
+    Weapons check to shoot down an inbound missile, cumulative DM-1 per
+    consecutive attempt this round (SRD doesn't specify a difficulty for the
+    check itself — treated as Average, a documented judgment call).
+  rollShipFireSand(componentItem, {skillLevel,dm}): defensive sandcaster use,
+    1 canister → 1D6 reduction against ONE incoming damage roll (the system
+    already resolves a multi-weapon mount's damage as a single roll, so this
+    doesn't attempt the SRD's per-beam granularity). rollShipWeaponDamage()
+    also now special-cases offensive sandcaster use as a fixed 1-point hit
+    (SRD p.157) when no dice-formula damage is set, rather than bailing out.
+  rollShipTriggerScreens(componentItem, {skillLevel}): 2D6+skill reduction,
+    reported for the GM to subtract by hand on the next Apply Hit — same
+    manual-compose-the-number convention as Fire Sand.
+  rollShipBoardingRound({attackerDM,defenderDM,attackerLabel,defenderLabel}):
+    Abstract Boarding Rules — called on the DEFENDING ship (both SRD outcome
+    branches affect "the ship" being boarded). Opposed roll decides the
+    winner; degree of success is read off the WINNER's own Effect (not the
+    margin between the two rolls) per the SRD's general Opposed Checks rule.
+    Regular Success → one Hit-Location-resolved hit on the internal column;
+    Exceptional Success (attacker wins) → 2D6 raw damage through the same
+    damageToHits()/_rollHitEvents() pipeline as a normal attack; Exceptional
+    Success (defender wins) → narrative-only, no ship damage.
 
 module/documents/item.mjs   (9 lines) — CepheusItem, currently just the bare
   subclass with no overrides (hook point for future item-level logic).
@@ -250,8 +316,17 @@ module/helpers/form.mjs — preventEnterSubmit(): blocks the native Enter-key
   the base actor sheet's _onRender and the item sheet.
 
 module/helpers/spacecombat.mjs — pure functions used by actor.mjs's ship-combat
-  methods: damageToHits(damage) (Space Combat Damage table, SRD p.159) and
-  applyTieredHit(current, amount, max) (0-3 tier math with overflow reporting).
+  methods: damageToHits(damage) (Space Combat Damage table, SRD p.159),
+  applyTieredHit(current, amount, max) (0-3 tier math with overflow reporting),
+  missileToHitTarget(effect) (Missile To-Hit By Skill Check Effect table, p.156).
+
+module/helpers/tables.mjs — drawTableChained(table, options): wraps
+  RollTable#draw() to auto-follow a drawn "pack"-type result into the sibling
+  RollTable it references (recursive, cycle-guarded) — Foundry's own draw()
+  stops at posting the reference, it doesn't continue drawing. Exposed as
+  game.cepheus.drawTableChained since macros can't import module files (see
+  cepheus.mjs); the "Roll on Table" macro (seeds/macros.mjs) uses it instead
+  of a bare table.draw().
 
 module/helpers/characteristics.mjs — computeCharacteristicDerived(characteristics)
   / computeWoundState(characteristics), extracted out of actor-data.mjs (which
@@ -259,8 +334,10 @@ module/helpers/characteristics.mjs — computeCharacteristicDerived(characterist
   without any `foundry.*` global — see tests/characteristics.test.mjs.
 
 module/helpers/handlebars.mjs — registers: cepheusSign (± formatting), cepheusHex
-  (0-15 → hex digit, used for UPP display), includes (array membership), keys
-  (Object.keys, used in chargen skill tables), inc (1-based @index).
+  (0-15 → hex digit, used for UPP display), includes (array membership), array
+  (build an inline array from template args, e.g. `(includes (array "a" "b") val)`
+  — used by the ship components table to gate buttons on multiple weaponTypes
+  at once), keys (Object.keys, used in chargen skill tables), inc (1-based @index).
 ```
 
 ### Sheets
@@ -297,19 +374,35 @@ module/sheets/creature-sheet.mjs — CepheusCreatureSheet extends base
 module/sheets/ship-sheet.mjs — CepheusShipSheet extends base
   PARTS: header, tabs, statistics, components, notes.
   Own actions: rollInitiative, rollAttack, rollWeaponDamage, applyShipHit,
-  adjustSystemHit, adjustMountHit. rollInitiative/applyShipHit use promptForm
-  (thrust advantage + tactics effect; raw damage + radiation flag) then
-  delegate to the matching CepheusActor ship-combat method. The Add Component
-  button uses the base createItem with data-type="shipComponent".
-  systemHitRows derive from CEPHEUS.spaceCombat.subsystems keys +
-  locationLabels — adding a subsystem needs only a config entry and a
-  <key>Hits schema field.
+  adjustSystemHit, adjustMountHit, launchMissile, resolveMissileImpact,
+  pointDefense, fireSand, triggerScreens, boardingAction. rollInitiative/
+  applyShipHit/resolveMissileImpact/pointDefense/fireSand/triggerScreens/
+  boardingAction all use promptForm (single-field or small multi-field
+  dialogs — the GM enters skill+DM combined as one number for point defense
+  and fire sand, matching the existing tacticsEffect-as-one-number pattern)
+  then delegate to the matching CepheusActor method. launchMissile takes no
+  dialog beyond the shared _promptRange picker (mirrors rollAttack's
+  minimalism — skillLevel/dm default to 0, same gap as every other ship
+  weapon roll from this sheet). resolveMissileImpact/launchMissile read
+  missileType off the component item directly rather than re-prompting for
+  it. The Add Component button uses the base createItem with
+  data-type="shipComponent". systemHitRows derive from
+  CEPHEUS.spaceCombat.subsystems keys + locationLabels — adding a subsystem
+  needs only a config entry and a <key>Hits schema field. Components table
+  gates action buttons per row on weaponType/mount/screenType: missile
+  launchers get Launch/Resolve Impact instead of Attack/Damage; sandcasters
+  additionally get Fire Sand; turret-mounted pulse/beam lasers get Point
+  Defense; any screenType gets Trigger Screens. Ammo is shown read-only in
+  the table (edited via the item sheet) for missile/sandcaster components.
 
 module/sheets/item-sheet.mjs — CepheusItemSheet, one sheet class for
   all 6 item types; body.hbs branches per itemType. rollAttack/rollDamage actions
   delegate to the owning actor if the item is embedded. (Own hierarchy —
   ItemSheetV2, not the actor base — but same submitOnChange/preventEnterSubmit
-  wiring.)
+  wiring.) shipComponent fields now also expose missileType (shown only when
+  weaponType is "missile"), ammo (shown for missile/sandcaster weaponTypes via
+  a precomputed showAmmo context boolean), and screenType (always shown,
+  independent of weaponType).
 
 module/apps/chargen.mjs   (491 lines) — CepheusChargenApp (ApplicationV2)
   Full lifepath wizard, steps: characteristics → career → terms (loop) →
@@ -374,8 +467,8 @@ packs on first `ready` hook if the pack is empty).
 | armor       | module/data/seeds/armor.mjs    | 9 |
 | equipment   | module/data/seeds/equipment.mjs| 121 |
 | augments    | module/data/seeds/augments.mjs | 12 (homebrew — no SRD source table for cybernetics/bio-augments, see below) |
-| tables      | module/data/seeds/tables.mjs   | 5 RollTables, direct SRD transcriptions: Random Encounters (D66, p.187), Patron Encounters (D66, p.188), Random Rumor Content (D66, pp.190-191), Starship Encounters (2D6, p.193), Animal Encounter 2D6 Template (p.184). D66 uses formula `(1d6*10)+1d6`. Narrower per-vessel-type sub-tables (Alien Vessel, Derelict, etc., pp.193-195) and the 1D6 Animal Encounter Template (p.183) exist in the SRD but weren't included — candidates for future expansion. |
-| macros      | module/data/seeds/macros.mjs   | 5 script macros (scope "global", operate on `canvas.tokens.controlled`): Roll on Table (prompts a table from the `tables` pack and draws it), Apply Damage to Selected, Heal Selected, Roll Ship Initiative, Full Recovery (Selected). |
+| tables      | module/data/seeds/tables.mjs   | 16 RollTables, direct SRD transcriptions: Random Encounters (D66, p.187), Patron Encounters (D66, p.188), Random Rumor Content (D66, pp.190-191), Starship Encounters (2D6, p.193), 10 "X Encounter Type" sub-tables (1D6 each, pp.193-195 — Alien Vessel/Astrogation/Derelict/Hostile Vessel/Merchant Vessel/Military Vessel/Personal Vessel/Spacecraft/Space Habitat/Space Junk), Animal Encounter 1D6 Template (p.183), Animal Encounter 2D6 Template (p.184). D66 uses formula `(1d6*10)+1d6`. Starship Encounters' 10 vessel-type results (all but "Referee's Choice") are `type:"pack"` chained references (via `tableResults()`) into the matching sub-table, resolved to a real `documentId` by `seed-sync.mjs`'s `resolveTableReferences()` and auto-followed at draw time by `helpers/tables.mjs`'s `drawTableChained()` — see §2's cepheus.mjs/macros.mjs entries. **Migration note:** `syncPack()` only adds entries missing *by name* (§2 seed-sync.mjs) — it never rewrites an already-existing document, so a world that ran an earlier system version (pre this pass) keeps its old, non-chaining "Starship Encounters" table forever after upgrading; only the 10 new sub-tables (new names) get added to it. A GM on such a world has to delete and let it re-seed (or edit it by hand) to get chaining. |
+| macros      | module/data/seeds/macros.mjs   | 6 script macros (scope "global", most operate on `canvas.tokens.controlled`): Roll on Table (prompts a table from the `tables` pack, draws it via `game.cepheus.drawTableChained()` so chained sub-table draws follow automatically), Apply Damage to Selected, Heal Selected, Roll Ship Initiative, Full Recovery (Selected), Create Campaign Folders (`game.cepheus.createCampaignFolders()` — re-run of the default folder seeding from §2's folder-seed.mjs). |
 
 ### Career data (`module/data/careers.mjs`, 523 lines)
 
@@ -405,7 +498,7 @@ only template-rendered UI text and dialog labels go through `lang/en.json`.
 
 ### Tests (`tests/`, run via `bun test`)
 
-86 tests, no test dependencies beyond the `bun` binary itself (`bun:test` is
+101 tests, no test dependencies beyond the `bun` binary itself (`bun:test` is
 built in). `bunfig.toml` preloads `tests/setup.mjs`, which stubs only
 `Math.clamp` and `CONFIG.CEPHEUS` (imported from the real config.mjs, not
 duplicated) — the minimal slice of the Foundry runtime the pure-logic modules
@@ -417,7 +510,8 @@ for this suite (see Known Issue 1 re: not yet exercised live).
 ```
 tests/setup.mjs               Preload: Math.clamp polyfill + CONFIG.CEPHEUS stub.
 tests/spacecombat.test.mjs    damageToHits() against every SRD Space Combat
-                               Damage table boundary; applyTieredHit() overflow math.
+                               Damage table boundary; applyTieredHit() overflow math;
+                               missileToHitTarget() against every Effect bracket.
 tests/dice.test.mjs           normalizeDiceFormula/isDiceFormula (case/whitespace,
                                descriptive-text rejection) and signed() formatting.
 tests/characteristics.test.mjs computeCharacteristicDerived()/computeWoundState()
@@ -463,6 +557,31 @@ tests/localization.test.mjs   Every statically-referenced `CEPHEUS.*` localize k
   redirect to Hull or Structure per the SRD. One damage-table interpretation is a
   documented judgment call: see the comment in `module/helpers/spacecombat.mjs`
   `damageToHits()` for damage >44 (the SRD text is ambiguous about compounding there).
+- **Missiles (SRD p.156-157):** two-step, GM-tracked flight time (no in-Foundry turn scheduler) —
+  launch check (Effect → impact to-hit target via `missileToHitTarget()`) now, impact check
+  later. Standard/Nuclear damage per the GM-entered `damage` field on the component; Smart
+  always needs 8+ and may be re-triggered turn after turn. Point Defense (turret pulse/beam
+  lasers only) attempts to shoot missiles down first, cumulative DM-1 per attempt.
+  **Judgment call:** the SRD's Attack Difficulties table (p.149) doesn't list missiles at all —
+  treated as flat Average(+0) at every range they can fire (Short/Medium/Long/Very Long/Distant;
+  never Adjacent/Close), documented in `CEPHEUS.spaceCombat.attackDifficulty.missile`. Point
+  Defense's check difficulty is equally unstated in the SRD and gets the same treatment.
+- **Sand (SRD p.130, 155, 157):** offensive Close-range use is a fixed 1 point of damage (not a
+  dice formula) — `rollShipWeaponDamage()` special-cases this. Defensive Fire Sand reduces one
+  incoming damage roll by 1D6 per canister; the SRD's "resolve each beam separately" per-beam
+  granularity isn't modeled since this system already collapses a multi-weapon mount's damage
+  into a single roll.
+- **Screens (SRD p.131, 155):** Trigger Screens rolls 2D6 + Screens skill as a damage reduction
+  figure the GM subtracts by hand on the next Apply Hit (same manual-compose-the-number flow as
+  Fire Sand) — nuclear dampers also flag that the automatic radiation hit from nuclear missiles
+  should be waived.
+- **Boarding actions (SRD p.155-156, Abstract Boarding Rules):** opposed roll on the defending
+  ship's actor; winner determined by highest total, degree of success read off the *winner's own*
+  Effect (roll + DM − 8) per the SRD's general Opposed Checks + Degrees of Success rules — not
+  the margin between the two rolls. Regular Success on either side → one Hit-Location-resolved
+  internal hit; Exceptional Success (attacker wins) → 2D6 raw internal damage through the normal
+  damage-to-hits pipeline; Exceptional Success (defender wins) → narrative outcome only, no
+  ship damage.
 
 ---
 
@@ -541,11 +660,19 @@ damage-number entry, no macro/rollable-table content, and no automated tests. Se
 - Regions-based AoE tooling (CLAUDE.md notes Measured Templates are removed in v14 in
   favor of Regions — nothing in the system currently uses either, presumably not needed
   yet given no template-based weapons/powers exist)
-- Missiles, screens, sand, and boarding actions from SRD ch.10 (space combat covers
-  initiative/attack/damage/full hit-location resolution only — see §3)
-- The narrower SRD encounter sub-tables and chained RollTable draws (e.g. rolling
-  Starship Encounters → automatically drawing from the matching vessel-type
-  sub-table) — see the `tables` pack note in §2 for what's included vs not
+- A "Reload Weapons System" action economy for missile racks/sandcasters (SRD p.152) —
+  ammo is tracked as a simple count (§2 item-data.mjs), but nothing enforces spending a
+  significant action to bring a spent launcher back into service; not modeled since this
+  system doesn't track minor/significant action economy for any other ship-combat action
+  either.
+- The full "bonus radiation crew hit in addition to normal damage" rule for meson/fusion/
+  particle/nuclear-missile hits (SRD p.157 Special Weapon Rules) — the existing `radiation`
+  flag on Apply Hit only changes what a Hit Location roll produces *if it happens to land
+  on Crew*; it doesn't add the automatic extra hit the SRD describes, or the −DM(armor)
+  penalty on that hit. This predates the missiles/sand/screens/boarding work (the flag
+  already existed for beam weapons) and was deliberately left alone rather than changed
+  as a side effect of adding nuclear missiles — flagged here as a known simplification,
+  not fixed.
 
 ---
 

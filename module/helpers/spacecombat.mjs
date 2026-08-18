@@ -23,6 +23,19 @@ export function damageToHits(damage) {
   return { single: Math.floor(extra / 3), double: Math.floor(extra / 6), triple: 2 };
 }
 
+// Table: Missile To-Hit By Skill Check Effect (SRD p.156). Converts the
+// launch check's Effect (roll − target, same definition evaluateCheck()
+// already uses) into the 2D6 target the missile must clear on the turn it
+// arrives. Smart missiles bypass this entirely and always need 8+ (handled
+// by the caller, not here).
+export function missileToHitTarget(effect) {
+  if (effect <= -6) return 11;
+  if (effect <= -1) return 10;
+  if (effect === 0) return 8;
+  if (effect <= 5)  return 7;
+  return 6;
+}
+
 // Applies `amount` hits to a 0-3 tier track (subsystem/turret/bay damage),
 // returning the new value and any overflow beyond tier 3, which the SRD
 // redirects to Hull or Structure damage ("Subsequent Hits: Count as X hits").

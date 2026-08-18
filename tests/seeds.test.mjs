@@ -48,8 +48,13 @@ describe("Item compendium seed counts and shape", () => {
 });
 
 describe("TABLES_SEED (RollTable documents)", () => {
-  test("has 5 tables", () => {
-    expect(TABLES_SEED.length).toBe(5);
+  test("has 16 tables", () => {
+    expect(TABLES_SEED.length).toBe(16);
+  });
+
+  test("table names are unique", () => {
+    const names = TABLES_SEED.map(t => t.name);
+    expect(new Set(names).size).toBe(names.length);
   });
 
   test("D66 tables (Random Encounters, Patron Encounters, Random Rumor Content) cover all 36 D66 values exactly once", () => {
@@ -80,14 +85,48 @@ describe("TABLES_SEED (RollTable documents)", () => {
     }
   });
 
-  test("every result has non-empty text and type 'text'", () => {
+  test("1D6 sub-tables (Encounter Type + Animal Encounter 1D6 Template) cover 1-6 exactly once", () => {
+    const oneD6Names = [
+      "Alien Vessel Encounter Type", "Astrogation Encounter Type", "Derelict Encounter Type",
+      "Hostile Vessel Encounter Type", "Merchant Vessel Encounter Type", "Military Vessel Encounter Type",
+      "Personal Vessel Encounter Type", "Spacecraft Encounter Type", "Space Habitat Encounter Type",
+      "Space Junk Encounter Type", "Animal Encounter (1D6 Template)",
+    ];
+    for (const name of oneD6Names) {
+      const table = TABLES_SEED.find(t => t.name === name);
+      expect(table, `expected table "${name}" to exist`).toBeTruthy();
+      expect(table.formula).toBe("1d6");
+      const values = table.results.map(r => r.range[0]).sort((a, b) => a - b);
+      expect(values).toEqual([1, 2, 3, 4, 5, 6]);
+    }
+  });
+
+  test("every result is a well-formed 'text' or 'pack' reference", () => {
     for (const table of TABLES_SEED) {
       for (const result of table.results) {
-        expect(result.type).toBe("text");
+        expect(["text", "pack"]).toContain(result.type);
         expect(typeof result.text).toBe("string");
         expect(result.text.length).toBeGreaterThan(0);
       }
     }
+  });
+
+  test("chained ('pack') results reference a sub-table that actually exists in TABLES_SEED", () => {
+    const names = new Set(TABLES_SEED.map(t => t.name));
+    let chainedCount = 0;
+    for (const table of TABLES_SEED) {
+      for (const result of table.results) {
+        if (result.type !== "pack") continue;
+        chainedCount++;
+        const refName = result.flags?.["cepheus-engine"]?.subTableRef;
+        expect(refName, `"pack" result on ${table.name} is missing a subTableRef flag`).toBeTruthy();
+        expect(names.has(refName), `${table.name}'s reference to "${refName}" has no matching table`).toBe(true);
+        expect(result.documentCollection).toBe("cepheus-engine.tables");
+        expect(result.documentId).toBeNull(); // patched at runtime by resolveTableReferences()
+      }
+    }
+    // Starship Encounters chains 10 of its 11 results (all but "Referee's Choice").
+    expect(chainedCount).toBe(10);
   });
 });
 

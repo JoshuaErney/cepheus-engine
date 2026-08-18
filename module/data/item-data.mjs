@@ -102,6 +102,24 @@ export class ShipComponentData extends foundry.abstract.TypeDataModel {
       // attacks, 2=disabled, 3=destroyed. Further hits redirect to the ship's
       // Hull (turret) or Structure (bay).
       hits: new fields.NumberField({ required: true, integer: true, min: 0, max: 3, initial: 0 }),
+      // Missiles-in-magazine (weaponType "missile") or sand canisters
+      // (weaponType "sandcaster") — a launch/firing consumes ammo, GM sets
+      // the starting count by hand (no ammo is included in a launcher's
+      // purchase cost per SRD p.130).
+      ammo: new fields.NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+      // Only meaningful when weaponType is "missile" — see
+      // CEPHEUS.spaceCombat.missileTypes.
+      missileType: new fields.StringField({
+        initial: "standard",
+        choices: Object.keys(CEPHEUS.spaceCombat.missileTypes),
+      }),
+      // Independent of weaponType — screens are defensive installations, not
+      // weapons. "" = this component isn't a screen.
+      screenType: new fields.StringField({
+        initial: "",
+        blank: true,
+        choices: ["", ...Object.keys(CEPHEUS.spaceCombat.screenTypes)],
+      }),
       description:    new fields.HTMLField({ initial: "" }),
     };
   }

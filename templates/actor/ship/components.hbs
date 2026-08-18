@@ -23,6 +23,7 @@
         <th>{{localize "CEPHEUS.Tonnage"}}</th>
         <th>{{localize "CEPHEUS.PowerRequired"}}</th>
         <th>{{localize "CEPHEUS.Cost"}}</th>
+        <th>{{localize "CEPHEUS.Ammo"}}</th>
         <th>{{localize "CEPHEUS.Hits"}}</th>
         <th></th>
       </tr>
@@ -40,13 +41,26 @@
             {{#if item.system.weaponType}}
               <span class="component-type-tag weapon-tag">
                 {{localize (lookup ../weaponTypeLabels item.system.weaponType)}}
+                {{#if (eq item.system.weaponType "missile")}}
+                  ({{localize (lookup (lookup ../missileTypeLabels item.system.missileType) "label")}})
+                {{/if}}
                 ({{localize (lookup ../mountLabels item.system.mount)}})
+              </span>
+            {{/if}}
+            {{#if item.system.screenType}}
+              <span class="component-type-tag weapon-tag">
+                {{localize (lookup (lookup ../screenTypeLabels item.system.screenType) "label")}}
               </span>
             {{/if}}
           </td>
           <td class="component-tonnage">{{item.system.tonnage}}T</td>
           <td class="component-power">{{item.system.powerRequired}}</td>
           <td class="component-cost">Cr{{item.system.cost}}</td>
+          <td class="component-ammo">
+            {{#if (includes (array "missile" "sandcaster") item.system.weaponType)}}
+              {{item.system.ammo}}
+            {{/if}}
+          </td>
           <td class="component-hits">
             {{#if item.system.weaponType}}
               <div class="hit-track">
@@ -59,7 +73,16 @@
             {{/if}}
           </td>
           <td class="item-controls">
-            {{#if item.system.weaponType}}
+            {{#if (eq item.system.weaponType "missile")}}
+              <button type="button" data-action="launchMissile" data-item-id="{{item.id}}"
+                      title="{{localize 'CEPHEUS.LaunchMissile'}}">
+                <i class="fas fa-rocket"></i>
+              </button>
+              <button type="button" data-action="resolveMissileImpact" data-item-id="{{item.id}}"
+                      title="{{localize 'CEPHEUS.ResolveMissileImpact'}}">
+                <i class="fas fa-burst"></i>
+              </button>
+            {{else if item.system.weaponType}}
               <button type="button" data-action="rollAttack" data-item-id="{{item.id}}"
                       title="{{localize 'CEPHEUS.RollAttack'}}">
                 <i class="fas fa-dice-d6"></i>
@@ -67,6 +90,26 @@
               <button type="button" data-action="rollWeaponDamage" data-item-id="{{item.id}}"
                       title="{{localize 'CEPHEUS.RollDamage'}}">
                 <i class="fas fa-burst"></i>
+              </button>
+            {{/if}}
+            {{#if (eq item.system.weaponType "sandcaster")}}
+              <button type="button" data-action="fireSand" data-item-id="{{item.id}}"
+                      title="{{localize 'CEPHEUS.FireSand'}}">
+                <i class="fas fa-shield-halved"></i>
+              </button>
+            {{/if}}
+            {{#if (eq item.system.mount "turret")}}
+              {{#if (includes (array "pulseLaser" "beamLaser") item.system.weaponType)}}
+                <button type="button" data-action="pointDefense" data-item-id="{{item.id}}"
+                        title="{{localize 'CEPHEUS.PointDefense'}}">
+                  <i class="fas fa-crosshairs"></i>
+                </button>
+              {{/if}}
+            {{/if}}
+            {{#if item.system.screenType}}
+              <button type="button" data-action="triggerScreens" data-item-id="{{item.id}}"
+                      title="{{localize 'CEPHEUS.TriggerScreens'}}">
+                <i class="fas fa-shield-halved"></i>
               </button>
             {{/if}}
             <button type="button" data-action="editItem" data-item-id="{{item.id}}"
@@ -81,7 +124,7 @@
         </tr>
       {{else}}
         <tr>
-          <td colspan="6" class="empty-row">{{localize "CEPHEUS.NoComponents"}}</td>
+          <td colspan="7" class="empty-row">{{localize "CEPHEUS.NoComponents"}}</td>
         </tr>
       {{/each}}
     </tbody>

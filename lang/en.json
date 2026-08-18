@@ -168,9 +168,26 @@
     "ApplyHit":       "Apply Hit",
     "Radiation":      "Radiation attack (Fusion/Particle/Meson/Nuclear)",
     "Hits":           "Hits",
+    "Ammo":           "Ammo",
 
     "WeaponType": "Weapon Type",
     "Mount":      "Mount",
+    "MissileType": "Missile Type",
+    "ScreenType":  "Screen",
+
+    "LaunchMissile":        "Launch Missile",
+    "ResolveMissileImpact": "Resolve Missile Impact",
+    "MissileToHitTarget":   "Impact To-Hit Target (from Launch message)",
+    "ReactionDM":           "Reaction DM (dodge, evasive maneuvers, etc.)",
+    "PointDefense":         "Point Defense",
+    "SkillPlusDM":          "Skill Level + DM",
+    "AttemptNumber":        "Attempt # This Round",
+    "FireSand":             "Fire Sand",
+    "TriggerScreens":       "Trigger Screens",
+    "ScreensSkillLevel":    "Screens Skill Level",
+    "BoardingAction":       "Boarding Action",
+    "AttackerDM":           "Attacker's Total DM (opposed Tactics check)",
+    "DefenderDM":           "Defender's Total DM (opposed Tactics check)",
 
     "RangeAdjacent": "Adjacent",
     "RangeClose":    "Close",
@@ -187,6 +204,14 @@
     "WeaponFusionGun":    "Fusion Gun",
     "WeaponMesonGun":     "Meson Gun",
     "WeaponSandcaster":   "Sandcaster",
+    "WeaponMissile":      "Missile Rack/Bay",
+
+    "MissileStandard": "Standard",
+    "MissileSmart":    "Smart",
+    "MissileNuclear":  "Nuclear",
+
+    "ScreenMeson":   "Meson Screen",
+    "ScreenNuclear": "Nuclear Damper",
 
     "MountTurret": "Turret",
     "MountBay":    "Bay",

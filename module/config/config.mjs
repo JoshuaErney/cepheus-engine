@@ -64,6 +64,31 @@ CEPHEUS.spaceCombat.weaponTypes = {
   fusionGun:    "CEPHEUS.WeaponFusionGun",
   mesonGun:     "CEPHEUS.WeaponMesonGun",
   sandcaster:   "CEPHEUS.WeaponSandcaster",
+  missile:      "CEPHEUS.WeaponMissile",
+};
+
+// Missile ammunition type (SRD p.130 Table: Missile Types). Orthogonal to
+// weaponType — only meaningful when weaponType is "missile". `smart` always
+// hits on 8+ (ignores the Effect-based to-hit table) and may re-attack every
+// turn until destroyed/jammed/out of fuel; `nuclear` inflicts a bonus
+// radiation crew hit, handled the same way existing radiation weapons
+// (meson/fusion/particle) already flow through applyShipDamage's `radiation`
+// flag — see the note on rollShipMissileImpact for what is/isn't modeled.
+CEPHEUS.spaceCombat.missileTypes = {
+  standard: { label: "CEPHEUS.MissileStandard", smart: false, nuclear: false },
+  smart:    { label: "CEPHEUS.MissileSmart",    smart: true,  nuclear: false },
+  nuclear:  { label: "CEPHEUS.MissileNuclear",  smart: false, nuclear: true  },
+};
+
+// Screen type (SRD p.131 Table: Screens). Orthogonal to weaponType — screens
+// are defensive installations, not weapons. Purely descriptive here; the
+// mechanical effect (2D6 + Screens skill damage reduction, and — for nuclear
+// dampers — suppressing the automatic radiation hit) is resolved by
+// rollShipTriggerScreens() and applied by hand to the next Apply Hit, the
+// same manual compose-the-final-number flow already used for Fire Sand.
+CEPHEUS.spaceCombat.screenTypes = {
+  meson:   { label: "CEPHEUS.ScreenMeson",   counters: ["mesonGun"] },
+  nuclear: { label: "CEPHEUS.ScreenNuclear", counters: ["fusionGun", "nuclearMissile"] },
 };
 
 CEPHEUS.spaceCombat.mounts = {
@@ -81,6 +106,17 @@ CEPHEUS.spaceCombat.attackDifficulty = {
   fusionGun:    { adjacent: "difficult",     close: "difficult",     short: "difficult", medium: "average",   long: "difficult", veryLong: "difficult",     distant: "difficult" },
   mesonGun:     { adjacent: "veryDifficult", close: "veryDifficult", short: "difficult", medium: "difficult", long: "average",   veryLong: "difficult",     distant: "difficult" },
   sandcaster:   { adjacent: "routine",       close: "average",       short: "difficult", medium: null,        long: null,        veryLong: null,            distant: null },
+  // Missiles (p.156) aren't listed in the SRD's Attack Difficulties table —
+  // only beam weapons and the sandcaster appear there. The missile-specific
+  // rules instead gate range via the Missile Launch Range table (no
+  // Adjacent/Close use; see missileRangeTurns below) and convert the launch
+  // check's Effect into a separate impact to-hit target (see
+  // missileToHitTarget() in helpers/spacecombat.mjs), so the launch check
+  // itself doesn't need range-scaled difficulty the way beam attacks do.
+  // Treated as a flat Average(+0) at every range it can be fired — a
+  // documented judgment call, same convention as the damage>44 interpretation
+  // in helpers/spacecombat.mjs.
+  missile:      { adjacent: null,            close: null,            short: "average",   medium: "average",   long: "average",   veryLong: "average",       distant: "average" },
 };
 
 // Table: Space Combat Hit Location (p.159), keyed by 2D6 roll. `external` is
@@ -135,6 +171,12 @@ CEPHEUS.spaceCombat.subsystems = {
 CEPHEUS.spaceCombat.mountHits = {
   turret: { tiers: ["Tracking damaged: attacks suffer DM-2", "Turret disabled", "Turret destroyed"], subsequent: "hull" },
   bay:    { tiers: ["Targeting damaged: attacks suffer DM-2", "Bay weapon disabled", "Bay weapon destroyed"], subsequent: "structure" },
+};
+
+// Table: Missile Launch Range (p.156) — turns until impact by launch range.
+// null = missiles cannot be launched at that range.
+CEPHEUS.spaceCombat.missileRangeTurns = {
+  adjacent: null, close: null, short: 1, medium: 1, long: 1, veryLong: 2, distant: 2,
 };
 
 // Table: Crew Damage (p.161), keyed by 2D6 roll.

@@ -668,6 +668,7 @@
 
 .cepheus-engine .item-controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
 }
 

@@ -2,6 +2,46 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+Adds the remaining SRD Chapter 10 space combat systems: missiles, sand, screens, and
+abstract boarding actions. None of this has been exercised in a live Foundry session yet
+(see PROJECT_STATUS.md §4) — static review and `bun test` only.
+
+- **Missiles** (racks/turrets and bays; standard/smart/nuclear): a two-step launch-then-impact
+  flow (`rollShipMissileLaunch` / `rollShipMissileImpact`) that reports flight time and the
+  impact to-hit target for the GM to track, since Foundry has no turn-scheduler to auto-resolve
+  the SRD's multi-turn missile flight. Smart missiles always need 8+ and can re-attack each
+  turn; nuclear missiles flag their bonus radiation hit. Ammo (missiles/canisters) is now
+  tracked per component.
+- **Point Defense**: turret lasers (pulse/beam, turret-mounted) can attempt to shoot down an
+  inbound missile, with a cumulative DM-1 per consecutive attempt.
+- **Sand**: offensive Close-range sandcaster use (fixed 1 point of damage) plus a defensive
+  Fire Sand reaction that reduces an incoming beam attack by 1D6, consuming a canister.
+- **Screens**: meson screen / nuclear damper ship components and a Trigger Screens reaction
+  (2D6 + Screens skill damage reduction; nuclear dampers also negate the automatic radiation
+  hit from nuclear missiles).
+- **Boarding actions**: the Abstract Boarding Rules (opposed Tactics check, `rollShipBoardingRound`)
+  — degree of success read off the winner's own Effect, resolving into a Single Hit of internal
+  damage, an Exceptional Success boarding/repel outcome, or (Exceptional Success, attacker wins)
+  2D6 of internal damage via the existing Hit Location pipeline.
+- A few SRD interpretation calls were necessary and are documented in code where made: missile
+  launch-check difficulty (the SRD's Attack Difficulties table omits missiles — treated as flat
+  Average at every valid range), and Point Defense's check difficulty (also unstated — same
+  treatment).
+
+Adds the narrower SRD encounter sub-tables and makes chained RollTable draws actually work.
+
+- 10 new "X Encounter Type" 1D6 sub-tables (Alien Vessel, Astrogation, Derelict, Hostile
+  Vessel, Merchant Vessel, Military Vessel, Personal Vessel, Spacecraft, Space Habitat, Space
+  Junk) and a 1D6 Animal Encounter Template, transcribed from SRD pp.183, 193-195.
+- Drawing "Starship Encounters" now automatically continues onto the matching vessel-type
+  sub-table instead of just naming it — new `drawTableChained()` helper (exposed as
+  `game.cepheus.drawTableChained`), used by the "Roll on Table" macro.
+- **Migration note:** worlds already on an earlier system version keep their existing
+  "Starship Encounters" table unchanged after upgrading (only missing-by-name entries are
+  added by the sync step) — delete and let it re-seed, or edit it by hand, to pick up chaining.
+
 ## [0.1.1] - 2026-08-18
 
 Critical fixes found during the first live Foundry v14 session against this codebase —

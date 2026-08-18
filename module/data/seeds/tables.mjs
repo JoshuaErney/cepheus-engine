@@ -100,15 +100,147 @@ export const TABLES_SEED = [
     ]),
   },
   {
+    // Results 2-11 chain into the matching "X Encounter Type" 1D6 sub-table
+    // below via tableResults() — drawing this table automatically continues
+    // onto the sub-table (see helpers/tables.mjs drawTableChained(), used by
+    // the "Roll on Table" macro instead of a bare RollTable#draw()). Only 12
+    // ("Referee's Choice") has no sub-table, so it stays plain text.
     name: "Starship Encounters",
     description: "SRD p.193 — Table: Starship Encounters (2D6).",
     formula: "2d6",
     replacement: true,
     displayRoll: true,
+    results: [
+      ...tableResults([
+        [2, "Alien Vessel Encounter Type"], [3, "Derelict Encounter Type"],
+        [4, "Space Habitat Encounter Type"], [5, "Astrogation Encounter Type"],
+        [6, "Space Junk Encounter Type"], [7, "Merchant Vessel Encounter Type"],
+        [8, "Personal Vessel Encounter Type"], [9, "Hostile Vessel Encounter Type"],
+        [10, "Military Vessel Encounter Type"], [11, "Spacecraft Encounter Type"],
+      ]),
+      ...textResults([[12, "Referee's Choice"]]),
+    ],
+  },
+  {
+    name: "Alien Vessel Encounter Type",
+    description: "SRD p.193 — Table: Alien Vessel Encounter Type (1D6). Drawn automatically from Starship Encounters [2].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
     results: textResults([
-      [2, "Alien Vessel"], [3, "Derelict"], [4, "Space Habitat"], [5, "Astrogation"],
-      [6, "Space Junk"], [7, "Merchant Vessel"], [8, "Personal Vessel"], [9, "Hostile Vessel"],
-      [10, "Military Vessel"], [11, "Spacecraft"], [12, "Referee's Choice"],
+      [1, "Alien courier"], [2, "Alien frontier trader"], [3, "Alien merchant freighter"],
+      [4, "Alien military vessel"], [5, "Alien raider"], [6, "Alien research vessel"],
+    ]),
+  },
+  {
+    name: "Derelict Encounter Type",
+    description: "SRD p.193 — Table: Derelict Encounter Type (1D6). Drawn automatically from Starship Encounters [3].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Escape pod or life boat"], [2, "Merchant vessel"], [3, "Military vessel"],
+      [4, "Personal vessel"], [5, "Research vessel"], [6, "Space habitat"],
+    ]),
+  },
+  {
+    name: "Space Habitat Encounter Type",
+    description: "SRD p.194 — Table: Space Habitat Encounter Type (1D6). Drawn automatically from Starship Encounters [4].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Medical facility"], [2, "Military facility"], [3, "Orbital factory"],
+      [4, "Orbital habitat"], [5, "Refueling station or spaceport"], [6, "Research facility"],
+    ]),
+  },
+  {
+    name: "Astrogation Encounter Type",
+    description: "SRD p.193 — Table: Astrogation Encounter Type (1D6). Drawn automatically from Starship Encounters [5].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Asteroid (inhabited)"], [2, "Asteroid (uninhabited)"], [3, "Comet"],
+      [4, "Interplanetary dust cloud"], [5, "Micrometeorite storm"], [6, "Solar flares"],
+    ]),
+  },
+  {
+    name: "Space Junk Encounter Type",
+    description: "SRD p.194 — Table: Space Junk Encounter Type (1D6). Drawn automatically from Starship Encounters [6].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Astrogational buoy or beacon"], [2, "Communications satellite"], [3, "Debris from collision or attack"],
+      [4, "Defense satellite"], [5, "Jettisoned cargo pod"], [6, "Lost or abandoned equipment or garbage"],
+    ]),
+  },
+  {
+    name: "Merchant Vessel Encounter Type",
+    description: "SRD p.193 — Table: Merchant Vessel Encounter Type (1D6). Drawn automatically from Starship Encounters [7].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Frontier trader"], [2, "Frontier trader"], [3, "Merchant freighter"],
+      [4, "Merchant liner"], [5, "Merchant trader"], [6, "Merchant trader"],
+    ]),
+  },
+  {
+    name: "Personal Vessel Encounter Type",
+    description: "SRD p.193 — Table: Personal Vessel Encounter Type (1D6). Drawn automatically from Starship Encounters [8].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Asteroid miner"], [2, "Courier"], [3, "Research vessel"],
+      [4, "Survey vessel"], [5, "Unusual ship"], [6, "Yacht"],
+    ]),
+  },
+  {
+    name: "Hostile Vessel Encounter Type",
+    description: "SRD p.193 — Table: Hostile Vessel Encounter Type (1D6). Drawn automatically from Starship Encounters [9].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Captured merchant vessel"], [2, "Captured military vessel"], [3, "Enemy military vessel"],
+      [4, "Raider"], [5, "Ship in distress (false)"], [6, "Ship in distress (true)"],
+    ]),
+  },
+  {
+    name: "Military Vessel Encounter Type",
+    description: "SRD p.193 — Table: Military Vessel Encounter Type (1D6). Drawn automatically from Starship Encounters [10].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Corvette"], [2, "Destroyer"], [3, "Patrol frigate"],
+      [4, "System defense boat"], [5, "System monitor"],
+      [6, "Warship (1: Dreadnought; 2-3: Heavy cruiser; 4-6: Light cruiser)"],
+    ]),
+  },
+  {
+    name: "Spacecraft Encounter Type",
+    description: "SRD p.193 — Table: Spacecraft Encounter Type (1D6). Drawn automatically from Starship Encounters [11].",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Cutter"], [2, "Launch or life boat"], [3, "Fighter"],
+      [4, "Pinnace"], [5, "Ship's boat"], [6, "Shuttle"],
+    ]),
+  },
+  {
+    name: "Animal Encounter (1D6 Template)",
+    description: "SRD p.183 — 1D6 Animal Encounter Table Template.",
+    formula: "1d6",
+    replacement: true,
+    displayRoll: true,
+    results: textResults([
+      [1, "Scavenger"], [2, "Herbivore"], [3, "Herbivore"],
+      [4, "Herbivore"], [5, "Omnivore"], [6, "Carnivore"],
     ]),
   },
   {

@@ -7,6 +7,10 @@ export function registerHandlebarsHelpers() {
 
   Handlebars.registerHelper("includes", (arr, val) => Array.isArray(arr) && arr.includes(val));
 
+  // Build an inline array from template args — e.g. {{#if (includes (array "a" "b") val)}}.
+  // The trailing arg is Handlebars' own options object, not a real parameter.
+  Handlebars.registerHelper("array", (...args) => args.slice(0, -1));
+
   // Return array of an object's keys — used in chargen skill tables.
   Handlebars.registerHelper("keys", obj => (obj ? Object.keys(obj) : []));
 

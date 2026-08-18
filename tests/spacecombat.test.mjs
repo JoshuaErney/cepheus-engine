@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { damageToHits, applyTieredHit } from "../module/helpers/spacecombat.mjs";
+import { damageToHits, applyTieredHit, missileToHitTarget } from "../module/helpers/spacecombat.mjs";
 
 describe("damageToHits (SRD Table: Space Combat Damage, p.159)", () => {
   test("zero or negative damage does nothing", () => {
@@ -55,5 +55,21 @@ describe("applyTieredHit (0-3 subsystem/turret/bay damage tracks)", () => {
 
   test("respects a custom max", () => {
     expect(applyTieredHit(0, 2, 1)).toEqual({ value: 1, overflow: 1 });
+  });
+});
+
+describe("missileToHitTarget (SRD Table: Missile To-Hit By Skill Check Effect, p.156)", () => {
+  test.each([
+    [-9, 11],
+    [-6, 11],
+    [-5, 10],
+    [-1, 10],
+    [0, 8],
+    [1, 7],
+    [5, 7],
+    [6, 6],
+    [9, 6],
+  ])("effect %i -> target %i+", (effect, expected) => {
+    expect(missileToHitTarget(effect)).toBe(expected);
   });
 });

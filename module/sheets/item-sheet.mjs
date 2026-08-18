@@ -32,8 +32,11 @@ export class CepheusItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
       system:      this.item.system,
       itemType:    this.item.type,
       charOptions: CONFIG.CEPHEUS.characteristics,
-      weaponTypeOptions: CONFIG.CEPHEUS.spaceCombat.weaponTypes,
-      mountOptions:      CONFIG.CEPHEUS.spaceCombat.mounts,
+      weaponTypeOptions:  CONFIG.CEPHEUS.spaceCombat.weaponTypes,
+      mountOptions:       CONFIG.CEPHEUS.spaceCombat.mounts,
+      missileTypeOptions: CONFIG.CEPHEUS.spaceCombat.missileTypes,
+      screenTypeOptions:  CONFIG.CEPHEUS.spaceCombat.screenTypes,
+      showAmmo:    ["missile", "sandcaster"].includes(this.item.system.weaponType),
       hasActor:    !!this.item.actor,
     };
   }

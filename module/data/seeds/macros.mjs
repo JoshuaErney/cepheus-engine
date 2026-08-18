@@ -24,7 +24,10 @@ const tableId = await DialogV2.prompt({
 if (!tableId) return;
 
 const table = tables.find(t => t.id === tableId);
-await table.draw();
+// Chains automatically into a matching sub-table when the draw lands on one
+// (e.g. Starship Encounters -> the matching "X Encounter Type" table) — see
+// game.cepheus.drawTableChained().
+await game.cepheus.drawTableChained(table);
 `.trim(),
   },
   {

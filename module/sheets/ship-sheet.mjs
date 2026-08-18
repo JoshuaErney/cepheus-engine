@@ -6,12 +6,18 @@ export class CepheusShipSheet extends CepheusBaseActorSheet {
     classes: ["cepheus-engine", "actor", "ship"],
     position: { width: 700, height: 580 },
     actions: {
-      rollInitiative:   CepheusShipSheet.#onRollInitiative,
-      rollAttack:       CepheusShipSheet.#onRollAttack,
-      rollWeaponDamage: CepheusShipSheet.#onRollWeaponDamage,
-      applyShipHit:     CepheusShipSheet.#onApplyShipHit,
-      adjustSystemHit:  CepheusShipSheet.#onAdjustSystemHit,
-      adjustMountHit:   CepheusShipSheet.#onAdjustMountHit,
+      rollInitiative:      CepheusShipSheet.#onRollInitiative,
+      rollAttack:          CepheusShipSheet.#onRollAttack,
+      rollWeaponDamage:    CepheusShipSheet.#onRollWeaponDamage,
+      applyShipHit:        CepheusShipSheet.#onApplyShipHit,
+      adjustSystemHit:     CepheusShipSheet.#onAdjustSystemHit,
+      adjustMountHit:      CepheusShipSheet.#onAdjustMountHit,
+      launchMissile:       CepheusShipSheet.#onLaunchMissile,
+      resolveMissileImpact: CepheusShipSheet.#onResolveMissileImpact,
+      pointDefense:        CepheusShipSheet.#onPointDefense,
+      fireSand:            CepheusShipSheet.#onFireSand,
+      triggerScreens:      CepheusShipSheet.#onTriggerScreens,
+      boardingAction:      CepheusShipSheet.#onBoardingAction,
     },
   };
 
@@ -52,8 +58,10 @@ export class CepheusShipSheet extends CepheusBaseActorSheet {
         label: CONFIG.CEPHEUS.spaceCombat.locationLabels[key],
         value: sys[`${key}Hits`],
       })),
-      weaponTypeLabels: CONFIG.CEPHEUS.spaceCombat.weaponTypes,
-      mountLabels:      CONFIG.CEPHEUS.spaceCombat.mounts,
+      weaponTypeLabels:  CONFIG.CEPHEUS.spaceCombat.weaponTypes,
+      mountLabels:       CONFIG.CEPHEUS.spaceCombat.mounts,
+      missileTypeLabels: CONFIG.CEPHEUS.spaceCombat.missileTypes,
+      screenTypeLabels:  CONFIG.CEPHEUS.spaceCombat.screenTypes,
     };
   }
 
@@ -106,5 +114,78 @@ export class CepheusShipSheet extends CepheusBaseActorSheet {
     const delta = Number(target.dataset.delta);
     const value = Math.clamp((item.system.hits ?? 0) + delta, 0, 3);
     await item.update({ "system.hits": value });
+  }
+
+  static async #onLaunchMissile(event, target) {
+    const item = this.actor.items.get(target.dataset.itemId);
+    if (item) await this.actor.rollShipMissileLaunch(item);
+  }
+
+  static async #onResolveMissileImpact(event, target) {
+    const item = this.actor.items.get(target.dataset.itemId);
+    if (!item) return;
+    const result = await promptForm({
+      title:   "CEPHEUS.ResolveMissileImpact",
+      okLabel: "CEPHEUS.ResolveMissileImpact",
+      fields: [
+        { type: "number", name: "toHitTarget", label: "CEPHEUS.MissileToHitTarget", value: 8, min: 2 },
+        { type: "number", name: "reactionDM",  label: "CEPHEUS.ReactionDM",         value: 0 },
+      ],
+    });
+    if (result) {
+      await this.actor.rollShipMissileImpact(item, {
+        toHitTarget: result.toHitTarget,
+        reactionDM:  result.reactionDM,
+        missileType: item.system.missileType,
+      });
+    }
+  }
+
+  static async #onPointDefense(event, target) {
+    const item = this.actor.items.get(target.dataset.itemId);
+    if (!item) return;
+    const result = await promptForm({
+      title:   "CEPHEUS.PointDefense",
+      okLabel: "CEPHEUS.PointDefense",
+      fields: [
+        { type: "number", name: "dm",             label: "CEPHEUS.SkillPlusDM", value: 0 },
+        { type: "number", name: "attemptNumber",  label: "CEPHEUS.AttemptNumber", value: 1, min: 1 },
+      ],
+    });
+    if (result) await this.actor.rollShipPointDefense(item, result);
+  }
+
+  static async #onFireSand(event, target) {
+    const item = this.actor.items.get(target.dataset.itemId);
+    if (!item) return;
+    const result = await promptForm({
+      title:   "CEPHEUS.FireSand",
+      okLabel: "CEPHEUS.FireSand",
+      fields: [{ type: "number", name: "dm", label: "CEPHEUS.SkillPlusDM", value: 0 }],
+    });
+    if (result) await this.actor.rollShipFireSand(item, result);
+  }
+
+  static async #onTriggerScreens(event, target) {
+    const item = this.actor.items.get(target.dataset.itemId);
+    if (!item) return;
+    const result = await promptForm({
+      title:   "CEPHEUS.TriggerScreens",
+      okLabel: "CEPHEUS.TriggerScreens",
+      fields: [{ type: "number", name: "skillLevel", label: "CEPHEUS.ScreensSkillLevel", value: 0, min: 0 }],
+    });
+    if (result) await this.actor.rollShipTriggerScreens(item, result);
+  }
+
+  static async #onBoardingAction(event, target) {
+    const result = await promptForm({
+      title:   "CEPHEUS.BoardingAction",
+      okLabel: "CEPHEUS.BoardingAction",
+      fields: [
+        { type: "number", name: "attackerDM", label: "CEPHEUS.AttackerDM", value: 0 },
+        { type: "number", name: "defenderDM", label: "CEPHEUS.DefenderDM", value: 0 },
+      ],
+    });
+    if (result) await this.actor.rollShipBoardingRound(result);
   }
 }

@@ -1,4 +1,4 @@
-import { damageToHits, applyTieredHit } from "../helpers/spacecombat.mjs";
+import { damageToHits, applyTieredHit, missileToHitTarget } from "../helpers/spacecombat.mjs";
 import { evaluateCheck, formatCheckFlavor, isDiceFormula, normalizeDiceFormula, signed } from "../helpers/dice.mjs";
 import { promptSelect } from "../helpers/dialogs.mjs";
 
@@ -390,11 +390,16 @@ export class CepheusActor extends Actor {
 
   async rollShipWeaponDamage(componentItem) {
     const raw = componentItem.system.damage ?? "";
-    if (!isDiceFormula(raw)) {
+    // Offensive sandcaster use is a fixed 1 point of damage (SRD p.157), not
+    // a GM-entered dice formula like every other weapon type.
+    const formula = isDiceFormula(raw)
+      ? normalizeDiceFormula(raw)
+      : (componentItem.system.weaponType === "sandcaster" ? "1" : null);
+    if (!formula) {
       ui.notifications.info(`${componentItem.name}: no damage formula set.`);
       return null;
     }
-    const roll = await new Roll(normalizeDiceFormula(raw)).evaluate();
+    const roll = await new Roll(formula).evaluate();
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: this }),
       flavor: formatCheckFlavor({
@@ -430,19 +435,29 @@ export class CepheusActor extends Actor {
       ...Array(hits.double).fill(2),
       ...Array(hits.triple).fill(3),
     ];
+    const column = this.system.isSmallCraft
+      ? "smallCraft"
+      : (this.system.hullPoints.value > 0 ? "external" : "internal");
 
+    lines.push(...await this._rollHitEvents(events, column, { radiation }));
+
+    await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this }), content: lines.join("<br>") });
+  }
+
+  // Rolls Hit Location once per event in `events` (each a 1/2/3 multiplier —
+  // single/double/triple hit) against the given Hit Location column, and
+  // resolves each. Shared by applyShipDamage() and the Abstract Boarding
+  // Rules' internal-damage resolution (rollShipBoardingRound()).
+  async _rollHitEvents(events, column, { radiation = false } = {}) {
+    const lines = [];
     for (const multiplier of events) {
       const locRoll = await new Roll("2d6").evaluate();
-      const column  = this.system.isSmallCraft
-        ? "smallCraft"
-        : (this.system.hullPoints.value > 0 ? "external" : "internal");
       const locationKey = CONFIG.CEPHEUS.spaceCombat.hitLocation[locRoll.total][column];
       const label        = game.i18n.localize(CONFIG.CEPHEUS.spaceCombat.locationLabels[locationKey]);
       const effectText   = await this._resolveShipHitLocation(locationKey, multiplier, { radiation });
       lines.push(`[${locRoll.total}] <strong>${label}</strong>${multiplier > 1 ? ` ×${multiplier}` : ""} — ${effectText}`);
     }
-
-    await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this }), content: lines.join("<br>") });
+    return lines;
   }
 
   async _resolveShipHitLocation(locationKey, multiplier, { radiation = false } = {}) {
@@ -570,5 +585,264 @@ export class CepheusActor extends Actor {
     const who      = entry.allCrew ? "All crew" : "One random crew member";
     const kind     = radiation ? "rads" : "damage";
     return `Crew Hit [${total}]: ${who} suffers ${dmgRoll.total} ${kind} (GM: apply manually)`;
+  }
+
+  // ── Missiles (SRD p.156-157) ────────────────────────────────────────────
+  //
+  // Missiles don't hit the turn they're launched — resolution is split into
+  // two GM-triggered steps, matching how every other ship weapon in this
+  // system already resolves across separate steps (rollShipAttack →
+  // rollShipWeaponDamage → applyShipDamage): rollShipMissileLaunch() now,
+  // rollShipMissileImpact() when the GM's turn tracking says it arrives.
+  // Foundry has no native "resolve N turns from now" scheduler and this
+  // system doesn't track combat-turn state, so the flight time is reported
+  // in chat for the GM to track by hand rather than auto-resolved.
+
+  // Step 1: the launch check. Effect converts to the 2D6 target the missile
+  // must clear on arrival (missileToHitTarget()); smart missiles ignore that
+  // and always need 8+. Consumes ammo immediately (12 per bay "flight",
+  // matching Missile Bank firing twelve missiles at a time; 1 per turret
+  // rack) since the missiles are committed to flight whether or not they
+  // ultimately connect.
+  async rollShipMissileLaunch(componentItem, options = {}) {
+    if (componentItem.system.weaponType !== "missile") {
+      ui.notifications.warn(`${componentItem.name} is not a missile launcher.`);
+      return null;
+    }
+    const hits = componentItem.system.hits ?? 0;
+    if (hits >= 2) {
+      ui.notifications.warn(`${componentItem.name} is disabled and cannot fire.`);
+      return null;
+    }
+
+    const missileType = componentItem.system.missileType ?? "standard";
+    const typeDef     = CONFIG.CEPHEUS.spaceCombat.missileTypes[missileType];
+    const ammoCost     = componentItem.system.mount === "bay" ? 12 : 1;
+    const ammo         = componentItem.system.ammo ?? 0;
+    if (ammo < ammoCost) {
+      ui.notifications.warn(`${componentItem.name}: not enough missiles loaded (needs ${ammoCost}, has ${ammo}).`);
+      return null;
+    }
+
+    const range = options.range ?? await this._promptRange(options.defaultRange ?? "short");
+    if (!range) return null;
+
+    const diffKey = CONFIG.CEPHEUS.spaceCombat.attackDifficulty.missile[range];
+    if (!diffKey) {
+      ui.notifications.warn(`Missiles cannot be launched at ${range} range.`);
+      return null;
+    }
+    const turns = CONFIG.CEPHEUS.spaceCombat.missileRangeTurns[range];
+
+    const trackingPenalty = hits === 1 ? -2 : 0;
+    const skillLevel      = options.skillLevel ?? 0;
+    const dm              = options.dm ?? 0;
+
+    const check = await evaluateCheck({ dm: skillLevel + dm + trackingPenalty, difficulty: diffKey });
+    const toHit = typeDef.smart ? 8 : missileToHitTarget(check.effect);
+
+    await componentItem.update({ "system.ammo": ammo - ammoCost });
+
+    const rangeLabel = game.i18n.localize(CONFIG.CEPHEUS.spaceCombat.rangeBands[range]);
+    const lines = [
+      `Impacts in <strong>${turns}</strong> turn${turns > 1 ? "s" : ""} — roll <strong>${toHit}+</strong> on arrival with "Resolve Missile Impact".`,
+    ];
+    if (typeDef.smart) lines.push("Smart missile: on a miss it keeps attacking every turn until destroyed, jammed, or out of fuel (~4-turn endurance).");
+
+    await check.roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor: formatCheckFlavor({
+        title:   componentItem.name,
+        kind:    `Missile Launch (${game.i18n.localize(typeDef.label)})`,
+        detail:  `${rangeLabel} range / ${check.diffLabel} (${check.target}+)${trackingPenalty ? ` / tracking damaged DM${trackingPenalty}` : ""}<br>${lines.join("<br>")}`,
+        outcome: { success: check.success, extra: check.success ? ` (Effect ${signed(check.effect)})` : "" },
+      }),
+    });
+
+    return { toHit, turns, missileType, roll: check.roll };
+  }
+
+  // Step 2: rolled by the GM when the missile arrives. `toHitTarget` and
+  // `missileType` come from the Launch message. `reactionDM` folds in
+  // whatever the target achieved this turn (Dodge Incoming Fire DM-2,
+  // Evasive Maneuvers DM-1/-2, a successful Point Defense against a *different*
+  // missile doesn't apply here, etc.) — entered by the GM, since this system
+  // doesn't track per-turn ship reactions as data. On a hit, immediately
+  // rolls the missile's damage (rollShipWeaponDamage) — applying it to the
+  // target is still the target's own separate Apply Hit step, same as every
+  // other weapon.
+  async rollShipMissileImpact(componentItem, { toHitTarget = 8, reactionDM = 0, missileType = "standard" } = {}) {
+    const typeDef = CONFIG.CEPHEUS.spaceCombat.missileTypes[missileType]
+      ?? CONFIG.CEPHEUS.spaceCombat.missileTypes.standard;
+    const target = typeDef.smart ? 8 : toHitTarget;
+    const roll   = await new Roll(`2d6 + ${reactionDM}`).evaluate();
+    const hit    = roll.total >= target;
+
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor: formatCheckFlavor({
+        title:   componentItem?.name ?? "Missile",
+        kind:    "Missile Impact",
+        detail:  `Needs ${target}+${reactionDM ? ` / reaction DM${signed(reactionDM)}` : ""}`,
+        outcome: {
+          success: hit,
+          extra: hit
+            ? ""
+            : (typeDef.smart ? " — smart missile keeps tracking; resolve again next turn if it isn't destroyed/jammed/out of fuel" : ""),
+        },
+      }),
+    });
+
+    if (!hit || !componentItem) return { hit, roll };
+
+    const damageRoll = await this.rollShipWeaponDamage(componentItem);
+    if (typeDef.nuclear) {
+      ui.notifications.info(`${componentItem.name}: nuclear missile — check "Radiation" on the target's Apply Hit dialog.`);
+    }
+    return { hit: true, roll, damageRoll };
+  }
+
+  // Reaction: a turret gunner may spend reactions trying to shoot down an
+  // incoming missile (or attack incoming boarders) with the Turret Weapons
+  // skill; each consecutive attempt beyond the first takes a cumulative
+  // DM-1 (SRD p.155). The SRD doesn't specify a difficulty for "a Turret
+  // Weapons check against the missile" beyond that phrase — treated as
+  // Average(+0), the same documented-judgment-call convention as
+  // CEPHEUS.spaceCombat.attackDifficulty.missile.
+  async rollShipPointDefense(componentItem, { skillLevel = 0, dm = 0, attemptNumber = 1 } = {}) {
+    const cumulativePenalty = -(Math.max(1, attemptNumber) - 1);
+    const check = await evaluateCheck({ dm: skillLevel + dm + cumulativePenalty, difficulty: "average" });
+
+    await check.roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor: formatCheckFlavor({
+        title:   componentItem.name,
+        kind:    "Point Defense",
+        detail:  `Attempt #${attemptNumber}${cumulativePenalty ? ` / cumulative DM${cumulativePenalty}` : ""}`,
+        outcome: { success: check.success, extra: check.success ? " — target destroyed" : "" },
+      }),
+    });
+    return { success: check.success };
+  }
+
+  // ── Sand (SRD p.155, 157, 130) ───────────────────────────────────────────
+
+  // Reaction: reduces the damage of an incoming beam attack by 1D6, costing
+  // one canister. The SRD has the gunner "resolve each beam separately" for
+  // multi-weapon mounts, but this system already resolves a turret/bay's
+  // damage as a single rollShipWeaponDamage() roll regardless of how many
+  // weapons share the mount, so Fire Sand's reduction is likewise a single
+  // 1D6 applied to that one roll rather than per-beam.
+  async rollShipFireSand(componentItem, { skillLevel = 0, dm = 0 } = {}) {
+    if (componentItem.system.weaponType !== "sandcaster") {
+      ui.notifications.warn(`${componentItem.name} is not a sandcaster.`);
+      return null;
+    }
+    const ammo = componentItem.system.ammo ?? 0;
+    if (ammo < 1) {
+      ui.notifications.warn(`${componentItem.name}: out of sand canisters.`);
+      return null;
+    }
+
+    const check = await evaluateCheck({ dm: skillLevel + dm, difficulty: "average" });
+    let reduction = 0;
+    if (check.success) reduction = (await new Roll("1d6").evaluate()).total;
+
+    await componentItem.update({ "system.ammo": ammo - 1 });
+
+    await check.roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor: formatCheckFlavor({
+        title:   componentItem.name,
+        kind:    "Fire Sand (Defense)",
+        detail:  `1 canister used, ${ammo - 1} remaining`,
+        outcome: { success: check.success, extra: check.success ? ` — reduces the incoming attack's damage by ${reduction} before Apply Hit` : "" },
+      }),
+    });
+    return { success: check.success, reduction };
+  }
+
+  // ── Screens (SRD p.155, 131) ─────────────────────────────────────────────
+
+  // Reaction: requires the operator to have the Screens skill (Level 0+,
+  // supplied as skillLevel — ships don't track crew skills on the actor,
+  // same convention as every other ship-combat roll here) and a matching
+  // screen installed. Reduces incoming damage by 2D6 + Screens skill; a
+  // nuclear damper also negates the automatic radiation hit from nuclear
+  // missiles. Like Fire Sand, this posts a reduction figure for the GM to
+  // subtract by hand on the next Apply Hit — it doesn't touch the target's
+  // data directly, since the screen and the incoming damage roll are
+  // resolved as separate manual steps throughout this system.
+  async rollShipTriggerScreens(componentItem, { skillLevel = 0 } = {}) {
+    if (!componentItem.system.screenType) {
+      ui.notifications.warn(`${componentItem.name} is not a screen.`);
+      return null;
+    }
+    const typeDef = CONFIG.CEPHEUS.spaceCombat.screenTypes[componentItem.system.screenType];
+    const roll    = await new Roll(`2d6 + ${skillLevel}`).evaluate();
+
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor: formatCheckFlavor({
+        title:  componentItem.name,
+        kind:   `Trigger Screens (${game.i18n.localize(typeDef.label)})`,
+        detail: componentItem.system.screenType === "nuclear"
+          ? "Also negates the automatic radiation hit from nuclear missiles"
+          : "",
+        outcome: { success: true, extra: ` — reduces incoming damage by ${roll.total} before Apply Hit` },
+      }),
+    });
+    return { reduction: roll.total };
+  }
+
+  // ── Boarding actions (SRD p.155-156, Abstract Boarding Rules) ───────────
+
+  // Called on the DEFENDING ship — both outcome branches in the SRD's table
+  // describe an effect on "the ship" (the one being boarded), never the
+  // attacker's vessel. attackerDM/defenderDM are each side's full DM for an
+  // opposed Intelligence-based Tactics check (Chief Security Officer, or
+  // Captain if none appointed) — ships don't track crew skills on the actor,
+  // same convention as rollShipInitiative's tacticsEffect. Per the SRD's
+  // general Opposed Checks rule the higher Effect wins; degree of success is
+  // then read off the WINNER's own Effect (roll + DM − 8) against the
+  // standard Degrees of Success table, not the margin between the two rolls.
+  async rollShipBoardingRound({ attackerDM = 0, defenderDM = 0, attackerLabel = "Attacker", defenderLabel = "Defender" } = {}) {
+    const attackerRoll = await new Roll(`2d6 + ${attackerDM}`).evaluate();
+    const defenderRoll = await new Roll(`2d6 + ${defenderDM}`).evaluate();
+
+    const lines = [
+      `<strong>${this.name}</strong> — Boarding Action`,
+      `<span class="cepheus-chat-detail">${attackerLabel} ${attackerRoll.total} vs ${defenderLabel} ${defenderRoll.total}</span>`,
+    ];
+
+    if (attackerRoll.total === defenderRoll.total) {
+      lines.push("Tied — no effect this round. (SRD: ties on opposed checks go to the higher relevant characteristic, or reroll.)");
+      await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this }), content: lines.join("<br>") });
+      return null;
+    }
+
+    const attackerWins = attackerRoll.total > defenderRoll.total;
+    const winnerLabel   = attackerWins ? attackerLabel : defenderLabel;
+    const winnerEffect  = (attackerWins ? attackerRoll.total : defenderRoll.total) - 8;
+    const exceptional   = winnerEffect >= 6;
+    const column        = this.system.isSmallCraft ? "smallCraft" : "internal";
+
+    if (!exceptional) {
+      lines.push(`<strong>Success — ${winnerLabel}</strong> gains DM+2 on their next opposed Tactics roll for boarding actions.`);
+      if (attackerWins) lines.push(`${defenderLabel} loses reactions this round.`);
+      lines.push(...await this._rollHitEvents([1], column, {}));
+    } else if (attackerWins) {
+      lines.push(`<strong>Exceptional Success — ${attackerLabel}</strong> boards the ship! GM: defending crew abandons ship, or is captured/killed at the attacker's discretion. Needs one turn to gain control.`);
+      const dmgRoll = await new Roll("2d6").evaluate();
+      const hits    = damageToHits(dmgRoll.total);
+      const events   = [...Array(hits.single).fill(1), ...Array(hits.double).fill(2), ...Array(hits.triple).fill(3)];
+      lines.push(`Internal damage: ${dmgRoll.total}`);
+      lines.push(...await this._rollHitEvents(events, column, {}));
+    } else {
+      lines.push(`<strong>Exceptional Success — ${defenderLabel}</strong> drives the attacker back to their own ship or out into space (or captures/kills them at the defender's discretion, if unable to retreat). If the ships are still docked, ${defenderLabel} may launch a boarding action against the former attacker next turn.`);
+    }
+
+    await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this }), content: lines.join("<br>") });
+    return { attackerWins, exceptional, winnerLabel };
   }
 }

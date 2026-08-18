@@ -192,6 +192,33 @@
                {{#unless editable}}disabled{{/unless}} />
       </div>
     </div>
+    <div class="form-row flexrow">
+      {{#if (eq system.weaponType "missile")}}
+        <div class="form-group">
+          <label>{{localize "CEPHEUS.MissileType"}}</label>
+          <select name="system.missileType" {{#unless editable}}disabled{{/unless}}>
+            {{#each missileTypeOptions as |def key|}}
+              <option value="{{key}}" {{#if (eq key ../system.missileType)}}selected{{/if}}>{{localize def.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      {{/if}}
+      {{#if showAmmo}}
+        <div class="form-group">
+          <label>{{localize "CEPHEUS.Ammo"}}</label>
+          <input type="number" name="system.ammo" value="{{system.ammo}}" min="0" {{#unless editable}}disabled{{/unless}} />
+        </div>
+      {{/if}}
+      <div class="form-group">
+        <label>{{localize "CEPHEUS.ScreenType"}}</label>
+        <select name="system.screenType" {{#unless editable}}disabled{{/unless}}>
+          <option value="" {{#unless system.screenType}}selected{{/unless}}>{{localize "CEPHEUS.None"}}</option>
+          {{#each screenTypeOptions as |def key|}}
+            <option value="{{key}}" {{#if (eq key ../system.screenType)}}selected{{/if}}>{{localize def.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+    </div>
   {{/if}}
 
   {{!-- Description (all types) --}}
