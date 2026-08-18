@@ -69,22 +69,26 @@ export class CepheusChargenApp extends HandlebarsApplicationMixin(ApplicationV2)
     this._autoRolled  = false;
   }
 
-  // Step 1 auto-rolls all six characteristics before the first render, so the
-  // player never sees zeros and the free initial roll never touches rerollsLeft.
-  async _preFirstRender(context, options) {
-    await super._preFirstRender(context, options);
-    if (this._autoRolled) return;
-    this._autoRolled = true;
-    for (const k of CHAR_KEYS) {
-      const r = await new Roll("2d6").evaluate();
-      this.chars[k] = r.total;
-    }
-    this._addLog("Characteristics rolled.");
-  }
-
   // ── Context ──────────────────────────────────────────────────────────────
 
+  // Step 1 auto-rolls all six characteristics before the first render, so the
+  // player never sees zeros and the free initial roll never touches rerollsLeft.
+  //
+  // This has to happen here, not in _preFirstRender: Foundry's render() calls
+  // _prepareContext() BEFORE _preFirstRender() (see ApplicationV2#render), so a
+  // roll done in _preFirstRender always arrives one render-context snapshot too
+  // late — the first paint already captured the pre-roll (all-zero) values,
+  // even though the roll itself (and its log entry) had already happened.
   async _prepareContext(options) {
+    if (!this._autoRolled) {
+      this._autoRolled = true;
+      for (const k of CHAR_KEYS) {
+        const r = await new Roll("2d6").evaluate();
+        this.chars[k] = r.total;
+      }
+      this._addLog("Characteristics rolled.");
+    }
+
     const ctx = await super._prepareContext(options);
     const abbr = k => game.i18n.localize(CEPHEUS.characteristicsAbbr[k]);
 

@@ -19,6 +19,14 @@ cepheus-engine. Removed `background` from system.json and untracked both
 the personally-watermarked SRD reference PDF and assets/background.jpg
 (unverified art license) — see §4.
 
+2026-08-18 (same day, follow-up): first-ever live Foundry v14 session against this
+codebase — found and fixed three release-blocking bugs that static review and `bun test`
+could not have caught (every actor sheet rendered blank; `system.characteristics` silently
+emptied on every prepare cycle; chargen's first paint showed all-zero characteristics). See
+§4's "Resolved 2026-08-18" entry for root causes and fixes. The system has now actually been
+clicked through — chargen end-to-end, campaign-folder seeding, and full ship combat
+(attack → damage → hit resolution) all confirmed working live.
+
 2026-07-26: a structural-consistency pass reorganized shared plumbing (base actor
 sheet class, dialog helpers, unified 2d6 check pipeline, config-derived enum
 choices, name-based pack sync). Descriptions below reflect the post-refactor
@@ -68,9 +76,9 @@ mindmap
       bun test — 86 tests, pure-logic modules + data/localization only (no
       Foundry-document/sheet/chargen coverage — see §2 tests/)
     Known gaps
-      Not yet exercised in a live Foundry session (see §4)
       background.jpg pulled from system.json/repo — unverified license, needs
       a real replacement before it's referenced again
+      Ship components have no tonnage/power capacity enforcement (see §4)
 ```
 
 ---
@@ -461,22 +469,48 @@ tests/localization.test.mjs   Every statically-referenced `CEPHEUS.*` localize k
 
 ## 4. Known issues (unfixed as of last review)
 
-1. **Not yet exercised live.** The system is symlinked into a local Foundry Data folder
-   (`~/Library/Application Support/FoundryVTT/Data/systems/cepheus-engine`), but no
-   session has been used to actually click through sheets/chargen/rolls/space-combat as
-   part of this review — only static code analysis. Worth a manual pass before relying
-   on any of the above as "working," especially chargen's full apply-to-actor flow, the
-   augments pack seeding on next world launch, and the new ship-combat hit resolution.
-
-2. **No system background image.** `assets/background.jpg` (a "burning astronaut" wallpaper of
+1. **No system background image.** `assets/background.jpg` (a "burning astronaut" wallpaper of
    unverified origin/license) was removed from `system.json` and gitignored rather than shipped
    with unclear rights — needs a real replacement (original art, a properly licensed image, or
    confirmed permission) before `background` is set again.
 
-3. **Ship components have no capacity enforcement.** Weapon/system tonnage and power
+2. **Ship components have no capacity enforcement.** Weapon/system tonnage and power
    draw are summed (`usedTonnage`/`usedPower`) but never validated against
    `displacement`/`powerPlant` — a ship can be built over-budget with no warning. Applies
    equally to the pre-existing non-weapon components and doesn't block space combat.
+
+Resolved 2026-08-18 (first live Foundry v14 session — three release-blocking bugs found and
+fixed, none of which static review had caught):
+- **Every actor sheet rendered blank below the header, on every actor type.** `_getTabs()`
+  (base-actor-sheet.mjs) computes an `active`/`cssClass` per tab, consumed correctly by
+  `templates/generic/tab-navigation.hbs` for the nav — but none of the 11 tab-content
+  templates (characteristics/skills/equipment/biography/notes × character/npc/creature/ship)
+  ever applied that class to their own `<section class="tab ...">`. Foundry core CSS hides
+  any `.tab` without `.active`, so no tab body was ever visible. Fixed by adding
+  `{{tab.cssClass}}` to each section's class list.
+- **`system.characteristics` silently emptied on every data-prep cycle for character/npc/
+  creature actors** (ships unaffected). `CepheusActor#getRollData()` called
+  `super.getRollData()`, which — per Foundry's own documented warning — returns `this.system`
+  *by reference*, not a copy. The override then did `data.characteristics = {}` before
+  reading from `sys.characteristics` in the same loop; since `data`/`sys`/`this.system` were
+  all the same object, that line wiped the live characteristics first, so the loop iterated
+  zero entries. Foundry calls `getRollData()` from `applyActiveEffects("initial")`, which runs
+  before the data model's own `prepareDerivedData()` on every single prepare cycle — so this
+  reproduced on a bare `Actor.create()` with no chargen involved, on every load. Persisted
+  data (`_source`) was never affected, only the in-memory prepared model. Fixed by
+  shallow-copying `super.getRollData()` before mutating.
+- **Chargen's Step 1 showed all-zero characteristics on first open**, despite claiming
+  "rolled automatically" and logging as much. `ApplicationV2#render()` calls
+  `_prepareContext()` *before* `_preFirstRender()` (confirmed against Foundry's own source),
+  so a roll performed in `_preFirstRender` always arrives one context-snapshot too late for
+  the first paint. Fixed by moving the auto-roll into `_prepareContext()` itself, guarded by
+  the existing `_autoRolled` flag.
+
+All three were caught only by actually driving a live Foundry v14 session (world creation,
+chargen, ship combat) via a scripted Playwright harness — static review and `bun test` (which
+can't touch `foundry.abstract`/sheets/chargen, see §2 tests/) had no way to catch any of them.
+Also fixed in the same pass: a stale `systems/cepheus-engine` symlink on the dev machine
+pointing at a nonexistent path.
 
 Resolved 2026-07-26 (structural-consistency pass): duplicated sheet plumbing
 (four sheets now share CepheusBaseActorSheet), eight hand-rolled DialogV2

@@ -13,8 +13,19 @@ export class CepheusActor extends Actor {
   }
 
   // Supply @characteristics.key.dm etc. to roll formulas and the initiative roll.
+  //
+  // super.getRollData() returns `this.system` BY REFERENCE, not a copy (see its
+  // own docstring: "care must be taken not to mutate the original object"). This
+  // used to assign straight onto that returned reference (`data.characteristics =
+  // {}`), which — since `data` *is* `this.system` — wiped the actor's live
+  // characteristics on every call. Foundry calls getRollData() as part of
+  // applyActiveEffects("initial"), which runs before the data model's own
+  // prepareDerivedData(), so this silently emptied system.characteristics on
+  // every single data-preparation cycle for every actor (persisted data was
+  // never affected — only the in-memory prepared model). Shallow-copy first so
+  // this method only ever mutates its own local copy.
   getRollData() {
-    const data = super.getRollData();
+    const data = { ...super.getRollData() };
     const sys = this.system;
     if (sys.characteristics) {
       data.characteristics = {};
