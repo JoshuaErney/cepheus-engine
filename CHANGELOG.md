@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.2] - 2026-08-18
+
+No code changes. Adds `FOUND_ISSUES.md`, a lightweight template for logging bugs found
+during manual playtesting (where/what happened/repro steps/suspected fix), kept separate
+from `PROJECT_STATUS.md`'s curated dev-facing summary.
+
 ## [0.2.1] - 2026-08-18
 
 Closes the two remaining gaps from v0.2.0's space combat work.
