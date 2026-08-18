@@ -24,10 +24,10 @@ const tableId = await DialogV2.prompt({
 if (!tableId) return;
 
 const table = tables.find(t => t.id === tableId);
-// Chains automatically into a matching sub-table when the draw lands on one
-// (e.g. Starship Encounters -> the matching "X Encounter Type" table) — see
-// game.cepheus.drawTableChained().
-await game.cepheus.drawTableChained(table);
+// Foundry's own RollTable#draw() already resolves a "document"-type result
+// pointing at another RollTable automatically (e.g. Starship Encounters ->
+// the matching "X Encounter Type" sub-table) — no custom chaining needed.
+await table.draw();
 `.trim(),
   },
   {

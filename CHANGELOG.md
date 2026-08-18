@@ -19,6 +19,30 @@ Closes the two remaining gaps from v0.2.0's space combat work.
   (`""` / `"standard"` / `"meson"`) instead of a boolean; the Apply Hit dialog's checkbox
   became a 3-way select accordingly.
 
+Fixes found during the first live Foundry v14 session run against v0.2.0's work (a scripted
+Playwright session against the real Electron app — none of this is catchable by `bun test`
+or static review):
+
+- Fix the shipComponent item sheet's Weapon Type and Mount dropdowns always displaying
+  "None," regardless of the actual saved value (a missing Handlebars `../` context escape).
+  Worse than cosmetic: because the sheet's `submitOnChange` resubmits the whole form on every
+  field edit, the wrong displayed blank value silently overwrote the real one on the *next*
+  field change — configuring a weapon, then touching any other field, lost the weapon
+  configuration. Predates the missiles/sand/screens/boarding work; only surfaced now because
+  this was the first live session to actually configure a shipComponent through its sheet.
+- Fix chained-table seeding using a deprecated Foundry v11/v12 `TableResult` schema
+  (`type: "pack"`, `documentCollection`/`documentId`, `text`) that Foundry v14 has replaced
+  with `type: "document"`, `documentUuid`, and `description` — the old fields were silently
+  dropped on write, so `resolveTableReferences()`'s patch never actually took and chaining
+  never fired. Also removed `helpers/tables.mjs`'s custom `drawTableChained()` wrapper (and
+  `game.cepheus.drawTableChained`) entirely: live testing showed Foundry's own
+  `RollTable#draw()` already auto-follows a `type: "document"` result into the table it
+  references, so the wrapper was solving an already-solved problem. The "Roll on Table"
+  macro is back to a bare `table.draw()`.
+- Fix every check-style chat message (skill/attack/psionic/ship-attack/missile-launch)
+  showing the difficulty target twice, e.g. "Average (8+) (8+)" — the difficulty label
+  already includes the target number.
+
 ## [0.2.0] - 2026-08-18
 
 Adds the remaining SRD Chapter 10 space combat systems: missiles, sand, screens, and

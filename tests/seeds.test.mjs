@@ -101,28 +101,34 @@ describe("TABLES_SEED (RollTable documents)", () => {
     }
   });
 
-  test("every result is a well-formed 'text' or 'pack' reference", () => {
+  // "document" is the current (Foundry v13+) TableResult type for a
+  // reference to another document; the older "pack" value + the
+  // documentCollection/documentId field pair are deprecated and (confirmed
+  // against a live v14 session) silently dropped on write — see
+  // seed-sync.mjs's resolveTableReferences(). Foundry's own RollTable#draw()
+  // auto-resolves a "document"-type result pointing at another RollTable,
+  // so no custom chaining code is needed on this system's side at all.
+  test("every result is a well-formed 'text' or 'document' reference", () => {
     for (const table of TABLES_SEED) {
       for (const result of table.results) {
-        expect(["text", "pack"]).toContain(result.type);
-        expect(typeof result.text).toBe("string");
-        expect(result.text.length).toBeGreaterThan(0);
+        expect(["text", "document"]).toContain(result.type);
+        expect(typeof result.description).toBe("string");
+        expect(result.description.length).toBeGreaterThan(0);
       }
     }
   });
 
-  test("chained ('pack') results reference a sub-table that actually exists in TABLES_SEED", () => {
+  test("chained ('document') results reference a sub-table that actually exists in TABLES_SEED", () => {
     const names = new Set(TABLES_SEED.map(t => t.name));
     let chainedCount = 0;
     for (const table of TABLES_SEED) {
       for (const result of table.results) {
-        if (result.type !== "pack") continue;
+        if (result.type !== "document") continue;
         chainedCount++;
         const refName = result.flags?.["cepheus-engine"]?.subTableRef;
-        expect(refName, `"pack" result on ${table.name} is missing a subTableRef flag`).toBeTruthy();
+        expect(refName, `"document" result on ${table.name} is missing a subTableRef flag`).toBeTruthy();
         expect(names.has(refName), `${table.name}'s reference to "${refName}" has no matching table`).toBe(true);
-        expect(result.documentCollection).toBe("cepheus-engine.tables");
-        expect(result.documentId).toBeNull(); // patched at runtime by resolveTableReferences()
+        expect(result.documentUuid).toBeUndefined(); // patched at runtime by resolveTableReferences()
       }
     }
     // Starship Encounters chains 10 of its 11 results (all but "Referee's Choice").

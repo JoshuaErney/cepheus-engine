@@ -9,6 +9,63 @@ Last reviewed: 2026-08-18. Re-verify against the code before trusting specifics 
 a snapshot, not a live source of truth. A git repo was initialized 2026-07-08
 (see `git log`); treat file line numbers here as approximate.
 
+2026-08-18 (same day, fifth follow-up — first live Foundry v14 session since 08-18's
+morning session, run via a scripted Playwright harness against the real Electron app):
+found and fixed three real bugs, none catchable by `bun test` or static review:
+- **shipComponent item sheet's Weapon Type / Mount `<select>`s silently corrupted data on
+  every subsequent field edit.** `templates/item/body.hbs` marked the selected `<option>`
+  via `{{#if (eq key system.weaponType)}}` — missing the `../` needed to escape the
+  `{{#each weaponTypeOptions}}` block's context change (`this` inside `#each`, even with
+  block params, rebinds to the current iteration value, not the outer item context — see
+  `missileType`/`screenType`'s already-correct `../system.X` pattern a few lines below,
+  which is what exposed the inconsistency). The dropdown always displayed "None," and —
+  because `submitOnChange` resubmits the *entire* form on every field change, not a diff —
+  the next unrelated edit (setting Mount, Damage, anything) silently wrote that wrong blank
+  value back to `weaponType`/`mount`, erasing whatever had actually been configured. This
+  predates the missiles/sand/screens/boarding work entirely (same bug pattern in the
+  original beam-weapon UI); only surfaced now because this was the first time anyone
+  actually configured a shipComponent through the item sheet in a live session. Fixed by
+  adding `../` to both selects.
+- **The chained-table seeding used a deprecated, non-functional Foundry schema.**
+  `tableResults()` (seeds/tables.mjs) wrote `type: "pack"`, `documentCollection`,
+  `documentId: null`, `text` — the Foundry v11/v12 TableResult shape. Live introspection of
+  `foundry.documents.BaseTableResult.schema` on a running v14 (build 367) server showed
+  none of those fields exist anymore: the actual fields are `type` (choices `"text"` /
+  `"document"` — there's no `"pack"`), `documentUuid` (a single UUID string), and
+  `description` (`text` is a deprecated compat *getter*, with no corresponding *setter* —
+  it silently drops on write, which is why `resolveTableReferences()`'s
+  `documentId: target.id` patch never actually took). Fixed `tableResults()`/`textResults()`
+  and `resolveTableReferences()` to use `type: "document"` / `documentUuid: target.uuid` /
+  `description`.
+- **Foundry's own `RollTable#draw()` already auto-resolves a `type: "document"` result
+  that points at another RollTable** — confirmed live (a bare `draw()` call on a correctly-
+  seeded Starship Encounters posted exactly one chat message showing the *sub-table's*
+  drawn result). This made the custom `helpers/tables.mjs` `drawTableChained()` wrapper
+  from the third follow-up entirely unnecessary — deleted it, along with
+  `game.cepheus.drawTableChained` and the "Roll on Table" macro's use of it (back to a
+  bare `table.draw()`). Net simplification: the real fix was only ever the schema
+  correction above.
+
+Also fixed while live-testing (pre-existing, unrelated to the day's other work): every
+check-style chat message (`rollSkill`/`rollAttack`/`rollPsionic`/`rollShipAttack`/
+`rollShipMissileLaunch`) displayed the difficulty target twice — `check.diffLabel` (e.g.
+"Average (8+)") already embeds the target number, and the code appended a redundant
+`(${check.target}+)` after it. Removed the redundant append at all 5 call sites in
+actor.mjs.
+
+Confirmed working as designed (no issues): missile launch→impact two-step flow including
+smart-missile wording and ammo/loaded consumption; Point Defense; offensive and defensive
+sandcaster fire including the flat-1-point offensive damage special case; Trigger Screens;
+Reload Weapons System (including the "isn't loaded — reload it first" gate blocking both
+offensive and defensive sandcaster fire); the Apply Hit dialog's 3-way Radiation select for
+both "standard" (armor-DM'd bonus hit) and "meson" (armor bypassed entirely, forced
+internal Hit Location column); all three Boarding Action outcome branches (regular
+Success, Exceptional Success for each side); and — once the schema fix above landed — the
+Starship Encounters → sub-table chained draw itself. NPC/creature/character sheet
+rendering also re-confirmed with no regressions (an apparently-blank Notes tab on a fresh
+NPC turned out to be a correctly-rendering, correctly-classed, genuinely-empty ProseMirror
+editor — not a revival of the original blank-tab bug — confirmed via direct DOM inspection).
+
 2026-08-18 (same day, fourth follow-up): closed the two remaining space-combat gaps from
 v0.2.0's §5 — Reload Weapons System (missile launchers/sandcasters now track a `loaded`
 state independent of ammo, per SRD p.152) and the bonus radiation crew hit special rule
@@ -358,14 +415,6 @@ module/helpers/spacecombat.mjs — pure functions used by actor.mjs's ship-comba
   applyTieredHit(current, amount, max) (0-3 tier math with overflow reporting),
   missileToHitTarget(effect) (Missile To-Hit By Skill Check Effect table, p.156).
 
-module/helpers/tables.mjs — drawTableChained(table, options): wraps
-  RollTable#draw() to auto-follow a drawn "pack"-type result into the sibling
-  RollTable it references (recursive, cycle-guarded) — Foundry's own draw()
-  stops at posting the reference, it doesn't continue drawing. Exposed as
-  game.cepheus.drawTableChained since macros can't import module files (see
-  cepheus.mjs); the "Roll on Table" macro (seeds/macros.mjs) uses it instead
-  of a bare table.draw().
-
 module/helpers/characteristics.mjs — computeCharacteristicDerived(characteristics)
   / computeWoundState(characteristics), extracted out of actor-data.mjs (which
   imports and uses them) specifically so they're importable and unit-testable
@@ -510,8 +559,8 @@ packs on first `ready` hook if the pack is empty).
 | armor       | module/data/seeds/armor.mjs    | 9 |
 | equipment   | module/data/seeds/equipment.mjs| 121 |
 | augments    | module/data/seeds/augments.mjs | 12 (homebrew — no SRD source table for cybernetics/bio-augments, see below) |
-| tables      | module/data/seeds/tables.mjs   | 16 RollTables, direct SRD transcriptions: Random Encounters (D66, p.187), Patron Encounters (D66, p.188), Random Rumor Content (D66, pp.190-191), Starship Encounters (2D6, p.193), 10 "X Encounter Type" sub-tables (1D6 each, pp.193-195 — Alien Vessel/Astrogation/Derelict/Hostile Vessel/Merchant Vessel/Military Vessel/Personal Vessel/Spacecraft/Space Habitat/Space Junk), Animal Encounter 1D6 Template (p.183), Animal Encounter 2D6 Template (p.184). D66 uses formula `(1d6*10)+1d6`. Starship Encounters' 10 vessel-type results (all but "Referee's Choice") are `type:"pack"` chained references (via `tableResults()`) into the matching sub-table, resolved to a real `documentId` by `seed-sync.mjs`'s `resolveTableReferences()` and auto-followed at draw time by `helpers/tables.mjs`'s `drawTableChained()` — see §2's cepheus.mjs/macros.mjs entries. **Migration note:** `syncPack()` only adds entries missing *by name* (§2 seed-sync.mjs) — it never rewrites an already-existing document, so a world that ran an earlier system version (pre this pass) keeps its old, non-chaining "Starship Encounters" table forever after upgrading; only the 10 new sub-tables (new names) get added to it. A GM on such a world has to delete and let it re-seed (or edit it by hand) to get chaining. |
-| macros      | module/data/seeds/macros.mjs   | 6 script macros (scope "global", most operate on `canvas.tokens.controlled`): Roll on Table (prompts a table from the `tables` pack, draws it via `game.cepheus.drawTableChained()` so chained sub-table draws follow automatically), Apply Damage to Selected, Heal Selected, Roll Ship Initiative, Full Recovery (Selected), Create Campaign Folders (`game.cepheus.createCampaignFolders()` — re-run of the default folder seeding from §2's folder-seed.mjs). |
+| tables      | module/data/seeds/tables.mjs   | 16 RollTables, direct SRD transcriptions: Random Encounters (D66, p.187), Patron Encounters (D66, p.188), Random Rumor Content (D66, pp.190-191), Starship Encounters (2D6, p.193), 10 "X Encounter Type" sub-tables (1D6 each, pp.193-195 — Alien Vessel/Astrogation/Derelict/Hostile Vessel/Merchant Vessel/Military Vessel/Personal Vessel/Spacecraft/Space Habitat/Space Junk), Animal Encounter 1D6 Template (p.183), Animal Encounter 2D6 Template (p.184). D66 uses formula `(1d6*10)+1d6`. Starship Encounters' 10 vessel-type results (all but "Referee's Choice") are `type:"document"` chained references (via `tableResults()`), each carrying a `documentUuid` resolved by `seed-sync.mjs`'s `resolveTableReferences()` once every table in the pack exists. Foundry's own `RollTable#draw()` auto-follows a `type:"document"` result into the RollTable it references (confirmed live against v14 build 367) — no system-side chaining code needed; a bare `table.draw()` (used by the "Roll on Table" macro) is enough. **Migration note:** `syncPack()` only adds entries missing *by name* (§2 seed-sync.mjs) — it never rewrites an already-existing document, so a world that ran an earlier system version (pre this pass) keeps its old, non-chaining "Starship Encounters" table forever after upgrading; only the 10 new sub-tables (new names) get added to it. A GM on such a world has to delete and let it re-seed (or edit it by hand) to get chaining. |
+| macros      | module/data/seeds/macros.mjs   | 6 script macros (scope "global", most operate on `canvas.tokens.controlled`): Roll on Table (prompts a table from the `tables` pack, calls a bare `table.draw()` — chaining is native to Foundry, see the `tables` row above), Apply Damage to Selected, Heal Selected, Roll Ship Initiative, Full Recovery (Selected), Create Campaign Folders (`game.cepheus.createCampaignFolders()` — re-run of the default folder seeding from §2's folder-seed.mjs). |
 
 ### Career data (`module/data/careers.mjs`, 523 lines)
 

@@ -100,7 +100,7 @@ export class CepheusActor extends Actor {
       flavor: formatCheckFlavor({
         title:   skillItem.name,
         kind:    "Skill Check",
-        detail:  `Skill ${skillLevel} / ${charLabel} DM${signed(charDm)} / ${check.diffLabel} (${check.target}+)`,
+        detail:  `Skill ${skillLevel} / ${charLabel} DM${signed(charDm)} / ${check.diffLabel}`,
         outcome: check,
       }),
     });
@@ -160,7 +160,7 @@ export class CepheusActor extends Actor {
       flavor: formatCheckFlavor({
         title:   weaponItem.name,
         kind:    "Attack Roll",
-        detail:  `${skillTag} / ${charLabel} DM${signed(charDm)} / ${check.diffLabel} (${check.target}+)`,
+        detail:  `${skillTag} / ${charLabel} DM${signed(charDm)} / ${check.diffLabel}`,
         outcome: check,
       }),
     });
@@ -215,7 +215,7 @@ export class CepheusActor extends Actor {
       flavor: formatCheckFlavor({
         title:   skillItem.name,
         kind:    "Psionic Roll",
-        detail:  `PSI DM${signed(psi.dm)} + Skill ${skillLevel} / Cost: ${cost} PSI / ${check.diffLabel} (${check.target}+)`,
+        detail:  `PSI DM${signed(psi.dm)} + Skill ${skillLevel} / Cost: ${cost} PSI / ${check.diffLabel}`,
         outcome: check,
       }),
     });
@@ -401,7 +401,7 @@ export class CepheusActor extends Actor {
       flavor: formatCheckFlavor({
         title:   componentItem.name,
         kind:    "Ship Attack",
-        detail:  `${rangeLabel} range / ${check.diffLabel} (${check.target}+)${trackingPenalty ? ` / tracking damaged DM${trackingPenalty}` : ""}`,
+        detail:  `${rangeLabel} range / ${check.diffLabel}${trackingPenalty ? ` / tracking damaged DM${trackingPenalty}` : ""}`,
         outcome: { success: check.success, extra: check.success ? ` (Effect ${signed(check.effect)})` : "" },
       }),
     });
@@ -703,7 +703,7 @@ export class CepheusActor extends Actor {
       flavor: formatCheckFlavor({
         title:   componentItem.name,
         kind:    `Missile Launch (${game.i18n.localize(typeDef.label)})`,
-        detail:  `${rangeLabel} range / ${check.diffLabel} (${check.target}+)${trackingPenalty ? ` / tracking damaged DM${trackingPenalty}` : ""}<br>${lines.join("<br>")}`,
+        detail:  `${rangeLabel} range / ${check.diffLabel}${trackingPenalty ? ` / tracking damaged DM${trackingPenalty}` : ""}<br>${lines.join("<br>")}`,
         outcome: { success: check.success, extra: check.success ? ` (Effect ${signed(check.effect)})` : "" },
       }),
     });

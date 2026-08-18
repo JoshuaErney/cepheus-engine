@@ -55,9 +55,13 @@ async function syncPack(collection, seedData) {
 }
 
 // Patches any RollTable result carrying a `subTableRef` flag (a name-based
-// placeholder for "draw on this other table next") to the real document _id
-// of the now-created sibling table. Idempotent — already-resolved results
-// (documentId set) are skipped, so re-running on every `ready` is harmless.
+// placeholder for "draw on this other table next") to the real UUID of the
+// now-created sibling table. Idempotent — already-resolved results
+// (documentUuid set) are skipped, so re-running on every `ready` is
+// harmless. Uses `documentUuid` (not the older `documentCollection` +
+// `documentId` pair) — confirmed against a live Foundry v14 session that
+// those older fields are silently dropped on write; `documentUuid` is the
+// actual TableResult schema field as of v13+.
 async function resolveTableReferences(collection) {
   const pack = game.packs.get(collection);
   if (!pack) return;
@@ -70,13 +74,13 @@ async function resolveTableReferences(collection) {
     const updates = [];
     for (const result of table.results) {
       const refName = result.flags?.["cepheus-engine"]?.subTableRef;
-      if (!refName || result.documentId) continue;
+      if (!refName || result.documentUuid) continue;
       const target = byName.get(refName);
       if (!target) {
         console.warn(`Cepheus Engine SRD | Table reference not found: "${refName}" (from ${table.name})`);
         continue;
       }
-      updates.push({ _id: result._id, documentId: target.id });
+      updates.push({ _id: result._id, documentUuid: target.uuid });
     }
     if (updates.length) pending.push([table, updates]);
   }

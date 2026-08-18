@@ -6,10 +6,14 @@
 // two-digit results from 11 to 66 that skip any digit above 6.
 const D66 = "(1d6 * 10) + 1d6";
 
+// `description` (not `text`) is the current TableResult field for a result's
+// display text as of Foundry v13+ — CONST.TABLE_RESULT_TYPES confirms the
+// two valid `type`s are "text"/"document" (there's no "pack"; a reference to
+// a compendium document is just type "document" with a `documentUuid`).
 function textResults(entries) {
   return entries.map(([range, text]) => ({
     type: "text",
-    text,
+    description: text,
     range: [range, range],
     weight: 1,
   }));
@@ -18,17 +22,15 @@ function textResults(entries) {
 // A result that sends the draw to another RollTable in this same pack — for
 // chained sub-tables (e.g. Starship Encounters [9] "Hostile Vessel" →
 // draw again on a Hostile Vessel Type table). The referenced table's real
-// document _id doesn't exist yet at seed-authoring time (it's assigned when
-// the pack is first built), so this carries a name-based placeholder in a
-// flag; seed-sync.mjs's resolveTableReferences() patches `documentId` once
-// every table in the pack has been created.
+// UUID doesn't exist yet at seed-authoring time (it's assigned when the pack
+// is first built), so this carries a name-based placeholder in a flag;
+// seed-sync.mjs's resolveTableReferences() patches `documentUuid` once every
+// table in the pack has been created.
 function tableResults(entries) {
   // entries: [range, subTableName]
   return entries.map(([range, subTableName]) => ({
-    type: "pack",
-    documentCollection: "cepheus-engine.tables",
-    documentId: null,
-    text: subTableName,
+    type: "document",
+    description: subTableName,
     range: [range, range],
     weight: 1,
     flags: { "cepheus-engine": { subTableRef: subTableName } },
@@ -101,10 +103,11 @@ export const TABLES_SEED = [
   },
   {
     // Results 2-11 chain into the matching "X Encounter Type" 1D6 sub-table
-    // below via tableResults() — drawing this table automatically continues
-    // onto the sub-table (see helpers/tables.mjs drawTableChained(), used by
-    // the "Roll on Table" macro instead of a bare RollTable#draw()). Only 12
-    // ("Referee's Choice") has no sub-table, so it stays plain text.
+    // below via tableResults() (type "document" + documentUuid, resolved by
+    // seed-sync.mjs's resolveTableReferences()) — Foundry's own
+    // RollTable#draw() automatically continues onto a "document"-type result
+    // that points at another RollTable, no custom chaining code needed. Only
+    // 12 ("Referee's Choice") has no sub-table, so it stays plain text.
     name: "Starship Encounters",
     description: "SRD p.193 — Table: Starship Encounters (2D6).",
     formula: "2d6",

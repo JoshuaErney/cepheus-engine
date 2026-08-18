@@ -15,7 +15,6 @@ import {
 import { registerHandlebarsHelpers } from "./module/helpers/handlebars.mjs";
 import { rollCheck } from "./module/helpers/dice.mjs";
 import { promptForm, promptNumber, promptSelect } from "./module/helpers/dialogs.mjs";
-import { drawTableChained } from "./module/helpers/tables.mjs";
 import { syncCompendiums } from "./module/data/seed-sync.mjs";
 import { registerFolderSeedSetting, seedCampaignFoldersOnce, ensureCampaignFolders } from "./module/data/folder-seed.mjs";
 
@@ -90,7 +89,6 @@ Hooks.once("init", () => {
   game.cepheus = {
     rollCheck, promptForm, promptNumber, promptSelect,
     createCampaignFolders: ensureCampaignFolders,
-    drawTableChained,
   };
 });
 

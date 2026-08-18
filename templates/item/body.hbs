@@ -174,7 +174,7 @@
         <label>{{localize "CEPHEUS.WeaponType"}}</label>
         <select name="system.weaponType" {{#unless editable}}disabled{{/unless}}>
           {{#each weaponTypeOptions as |label key|}}
-            <option value="{{key}}" {{#if (eq key system.weaponType)}}selected{{/if}}>{{localize label}}</option>
+            <option value="{{key}}" {{#if (eq key ../system.weaponType)}}selected{{/if}}>{{localize label}}</option>
           {{/each}}
         </select>
       </div>
@@ -182,7 +182,7 @@
         <label>{{localize "CEPHEUS.Mount"}}</label>
         <select name="system.mount" {{#unless editable}}disabled{{/unless}}>
           {{#each mountOptions as |label key|}}
-            <option value="{{key}}" {{#if (eq key system.mount)}}selected{{/if}}>{{localize label}}</option>
+            <option value="{{key}}" {{#if (eq key ../system.mount)}}selected{{/if}}>{{localize label}}</option>
           {{/each}}
         </select>
       </div>
