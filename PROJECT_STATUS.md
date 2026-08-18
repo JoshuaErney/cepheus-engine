@@ -78,7 +78,6 @@ mindmap
     Known gaps
       background.jpg pulled from system.json/repo — unverified license, needs
       a real replacement before it's referenced again
-      Ship components have no tonnage/power capacity enforcement (see §4)
 ```
 
 ---
@@ -474,10 +473,15 @@ tests/localization.test.mjs   Every statically-referenced `CEPHEUS.*` localize k
    with unclear rights — needs a real replacement (original art, a properly licensed image, or
    confirmed permission) before `background` is set again.
 
-2. **Ship components have no capacity enforcement.** Weapon/system tonnage and power
-   draw are summed (`usedTonnage`/`usedPower`) but never validated against
-   `displacement`/`powerPlant` — a ship can be built over-budget with no warning. Applies
-   equally to the pre-existing non-weapon components and doesn't block space combat.
+Resolved 2026-08-18 (ship component capacity — warn, don't block): added `isOverTonnage`/
+`isOverPower` derived booleans on `ShipData` (actor.mjs's `prepareDerivedData`, alongside the
+existing `usedTonnage`/`usedPower` sums), comparing against `displacement` and `powerPlant`
+respectively. `powerPlant`'s 0-6 rating is treated as the power budget directly (matches how
+`powerRequired` is already entered by hand per component; no new SRD-external formula
+introduced). The Components tab now shows both totals as "used / capacity" and highlights
+either in red with a warning icon when exceeded (`.over-capacity` in cepheus.css,
+`CEPHEUS.OverCapacity` in lang/en.json) — deliberately a soft warning, not a hard block, so a
+GM can still knowingly build an over-budget ship.
 
 Resolved 2026-08-18 (first live Foundry v14 session — three release-blocking bugs found and
 fixed, none of which static review had caught):

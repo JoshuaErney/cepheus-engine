@@ -9,6 +9,10 @@ export class CepheusActor extends Actor {
       const components = this.itemTypes.shipComponent ?? [];
       this.system.usedTonnage = components.reduce((s, c) => s + (c.system.tonnage        ?? 0), 0);
       this.system.usedPower   = components.reduce((s, c) => s + (c.system.powerRequired  ?? 0), 0);
+      // Informational only — a GM can still build an over-budget ship; the sheet
+      // just flags it (red highlight on Tonnage/Power Used) rather than blocking.
+      this.system.isOverTonnage = this.system.usedTonnage > this.system.displacement;
+      this.system.isOverPower   = this.system.usedPower   > this.system.powerPlant;
     }
   }
 

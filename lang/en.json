@@ -155,6 +155,7 @@
     "MinCrew":        "Min. Crew",
     "TonnageUsed":    "Tonnage Used",
     "PowerUsed":      "Power Used",
+    "OverCapacity":   "Over capacity — component tonnage/power exceeds this ship's displacement/power plant rating",
     "AddComponent":   "Add Component",
     "ComponentName":  "Component",
     "NoComponents":   "No components installed.",

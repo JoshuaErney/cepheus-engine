@@ -238,6 +238,15 @@
   color: #a8d8ea;
 }
 
+.cepheus-engine .component-totals .over-capacity,
+.cepheus-engine .component-totals .over-capacity strong {
+  color: #f44336;
+}
+
+.cepheus-engine .component-totals .over-capacity .fa-triangle-exclamation {
+  margin-left: 0.2rem;
+}
+
 .cepheus-engine .components-table {
   width: 100%;
   border-collapse: collapse;
