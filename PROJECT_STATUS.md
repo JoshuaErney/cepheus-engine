@@ -5,9 +5,19 @@ an AI assistant (or a human) can load it and understand what exists, how it work
 what's left — without re-reading the whole codebase. Complements `CLAUDE.md` (which
 covers *conventions and how-to*); this file covers *what's actually built*.
 
-Last reviewed: 2026-07-26. Re-verify against the code before trusting specifics — this is
+Last reviewed: 2026-08-18. Re-verify against the code before trusting specifics — this is
 a snapshot, not a live source of truth. A git repo was initialized 2026-07-08
 (see `git log`); treat file line numbers here as approximate.
+
+2026-08-18: release-prep pass — added LICENSE (MIT, for original code),
+OPEN_GAME_LICENSE.txt (verbatim OGL v1.0a + Section 15 copyright chain,
+extracted from the SRD PDF), README.md (with the required Cepheus Engine
+Compatibility-Statement License disclaimer), CHANGELOG.md, GitHub Actions
+CI/release workflows, and filled in system.json's url/manifest/download/
+readme/license/bugs/changelog fields against github.com/JoshuaErney/
+cepheus-engine. Removed `background` from system.json and untracked both
+the personally-watermarked SRD reference PDF and assets/background.jpg
+(unverified art license) — see §4.
 
 2026-07-26: a structural-consistency pass reorganized shared plumbing (base actor
 sheet class, dialog helpers, unified 2d6 check pipeline, config-derived enum
@@ -58,7 +68,9 @@ mindmap
       bun test — 86 tests, pure-logic modules + data/localization only (no
       Foundry-document/sheet/chargen coverage — see §2 tests/)
     Known gaps
-      No CI (tests exist locally but nothing runs them on push/PR)
+      Not yet exercised in a live Foundry session (see §4)
+      background.jpg pulled from system.json/repo — unverified license, needs
+      a real replacement before it's referenced again
 ```
 
 ---
@@ -456,7 +468,12 @@ tests/localization.test.mjs   Every statically-referenced `CEPHEUS.*` localize k
    on any of the above as "working," especially chargen's full apply-to-actor flow, the
    augments pack seeding on next world launch, and the new ship-combat hit resolution.
 
-2. **Ship components have no capacity enforcement.** Weapon/system tonnage and power
+2. **No system background image.** `assets/background.jpg` (a "burning astronaut" wallpaper of
+   unverified origin/license) was removed from `system.json` and gitignored rather than shipped
+   with unclear rights — needs a real replacement (original art, a properly licensed image, or
+   confirmed permission) before `background` is set again.
+
+3. **Ship components have no capacity enforcement.** Weapon/system tonnage and power
    draw are summed (`usedTonnage`/`usedPower`) but never validated against
    `displacement`/`powerPlant` — a ship can be built over-budget with no warning. Applies
    equally to the pre-existing non-weapon components and doesn't block space combat.
@@ -483,8 +500,6 @@ damage-number entry, no macro/rollable-table content, and no automated tests. Se
 
 ## 5. Not yet started
 
-- CI (the `bun test` suite exists and runs locally but nothing runs it automatically
-  on push/PR — no CI config of any kind exists yet)
 - Regions-based AoE tooling (CLAUDE.md notes Measured Templates are removed in v14 in
   favor of Regions — nothing in the system currently uses either, presumably not needed
   yet given no template-based weapons/powers exist)

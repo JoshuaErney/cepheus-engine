@@ -1,3 +1,12 @@
 .DS_Store
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+
+# Purchased/watermarked reference copy — not redistributable, dev reference only
+Cepheus_Engine_System_Reference_Document.pdf
+
+# Background art of unverified license — do not ship until a replacement/rights are confirmed
+assets/background.jpg
+
+# Local build output
+*.zip

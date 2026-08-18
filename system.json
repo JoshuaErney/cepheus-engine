@@ -90,7 +90,11 @@
       "system": "cepheus-engine"
     }
   ],
-  "url": "",
-  "manifest": "",
-  "download": ""
+  "url": "https://github.com/JoshuaErney/cepheus-engine",
+  "manifest": "https://github.com/JoshuaErney/cepheus-engine/releases/latest/download/system.json",
+  "download": "https://github.com/JoshuaErney/cepheus-engine/releases/latest/download/system.zip",
+  "readme": "https://github.com/JoshuaErney/cepheus-engine#readme",
+  "license": "https://github.com/JoshuaErney/cepheus-engine/blob/main/LICENSE",
+  "bugs": "https://github.com/JoshuaErney/cepheus-engine/issues",
+  "changelog": "https://github.com/JoshuaErney/cepheus-engine/blob/main/CHANGELOG.md"
 }

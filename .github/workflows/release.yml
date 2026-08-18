@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun test
+
+      # Package only the files Foundry needs at runtime, plus license/attribution text.
+      - name: Build system.zip
+        run: |
+          mkdir -p dist
+          zip -r dist/system.zip \
+            system.json cepheus.mjs module templates styles lang packs \
+            LICENSE OPEN_GAME_LICENSE.txt README.md CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            system.json
+            dist/system.zip
