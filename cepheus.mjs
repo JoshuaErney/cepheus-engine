@@ -16,6 +16,7 @@ import { registerHandlebarsHelpers } from "./module/helpers/handlebars.mjs";
 import { rollCheck } from "./module/helpers/dice.mjs";
 import { promptForm, promptNumber, promptSelect } from "./module/helpers/dialogs.mjs";
 import { syncCompendiums } from "./module/data/seed-sync.mjs";
+import { registerFolderSeedSetting, seedCampaignFoldersOnce, ensureCampaignFolders } from "./module/data/folder-seed.mjs";
 
 Hooks.once("init", () => {
   console.log("Cepheus Engine SRD | Initialising");
@@ -80,14 +81,23 @@ Hooks.once("init", () => {
   });
 
   registerHandlebarsHelpers();
+  registerFolderSeedSetting();
 
   // Macro-facing API: compendium macros can't import module files, so the
   // shared check/dialog helpers are exposed here instead of being re-rolled
   // inline in each macro.
-  game.cepheus = { rollCheck, promptForm, promptNumber, promptSelect };
+  game.cepheus = {
+    rollCheck, promptForm, promptNumber, promptSelect,
+    createCampaignFolders: ensureCampaignFolders,
+  };
 });
 
 Hooks.once("ready", async () => {
   console.log("Cepheus Engine SRD | Ready");
-  if (game.user.isGM) await syncCompendiums();
+  if (game.user.isGM) {
+    await syncCompendiums();
+    // First-launch only; a GM can re-run this any time via the "Create
+    // Campaign Folders" macro (game.cepheus.createCampaignFolders()).
+    await seedCampaignFoldersOnce();
+  }
 });

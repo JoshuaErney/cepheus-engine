@@ -6,6 +6,7 @@ import { EQUIPMENT_SEED } from "../module/data/seeds/equipment.mjs";
 import { AUGMENTS_SEED }  from "../module/data/seeds/augments.mjs";
 import { TABLES_SEED }    from "../module/data/seeds/tables.mjs";
 import { MACROS_SEED }    from "../module/data/seeds/macros.mjs";
+import { FOLDER_SEED }    from "../module/data/seeds/folders.mjs";
 
 function expectWellFormedItems(seed, type, expectedCount) {
   expect(seed.length).toBe(expectedCount);
@@ -91,8 +92,8 @@ describe("TABLES_SEED (RollTable documents)", () => {
 });
 
 describe("MACROS_SEED (Macro documents)", () => {
-  test("has 5 macros, each a well-formed script macro", () => {
-    expect(MACROS_SEED.length).toBe(5);
+  test("has 6 macros, each a well-formed script macro", () => {
+    expect(MACROS_SEED.length).toBe(6);
     const names = MACROS_SEED.map(m => m.name);
     expect(new Set(names).size).toBe(names.length);
     for (const macro of MACROS_SEED) {
@@ -110,6 +111,52 @@ describe("MACROS_SEED (Macro documents)", () => {
       // without needing a live Foundry environment to execute them.
       expect(() => new Function("return (async () => {\n" + macro.command + "\n})")())
         .not.toThrow();
+    }
+  });
+});
+
+describe("FOLDER_SEED (default campaign folder structure)", () => {
+  // Foundry document types that actually support a `folder` field/tree.
+  const FOLDER_CAPABLE_TYPES = ["Actor", "Item", "JournalEntry", "Scene", "RollTable", "Macro", "Cards", "Playlist"];
+  const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+  function walk(nodes, out = []) {
+    for (const node of nodes) {
+      out.push(node);
+      if (node.children?.length) walk(node.children, out);
+    }
+    return out;
+  }
+
+  test("every key is a folder-capable Foundry document type", () => {
+    for (const type of Object.keys(FOLDER_SEED)) {
+      expect(FOLDER_CAPABLE_TYPES).toContain(type);
+    }
+  });
+
+  test("every tree has at least one top-level folder", () => {
+    for (const [type, tree] of Object.entries(FOLDER_SEED)) {
+      expect(tree.length, `${type} should have at least one folder`).toBeGreaterThan(0);
+    }
+  });
+
+  test("sibling folder names are unique at every level, and every node is well-formed", () => {
+    for (const [type, tree] of Object.entries(FOLDER_SEED)) {
+      const checkSiblings = nodes => {
+        const names = nodes.map(n => n.name);
+        expect(new Set(names).size, `duplicate sibling names in ${type}`).toBe(names.length);
+        for (const node of nodes) {
+          if (node.children?.length) checkSiblings(node.children);
+        }
+      };
+      checkSiblings(tree);
+
+      for (const node of walk(tree)) {
+        expect(typeof node.name).toBe("string");
+        expect(node.name.length).toBeGreaterThan(0);
+        if (node.color !== undefined) expect(node.color).toMatch(HEX_COLOR);
+        if (node.children !== undefined) expect(Array.isArray(node.children)).toBe(true);
+      }
     }
   });
 });

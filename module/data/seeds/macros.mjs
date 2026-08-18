@@ -94,4 +94,15 @@ for (const token of tokens) {
 }
 `.trim(),
   },
+  {
+    name: "Create Campaign Folders",
+    type: "script",
+    scope: "global",
+    img: "icons/svg/chest.svg",
+    command: `
+if (!game.user.isGM) return ui.notifications.warn("Only the GM can create campaign folders.");
+await game.cepheus.createCampaignFolders();
+ui.notifications.info("Campaign folders created (existing folders were left untouched).");
+`.trim(),
+  },
 ];
