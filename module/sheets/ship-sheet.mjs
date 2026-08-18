@@ -18,6 +18,7 @@ export class CepheusShipSheet extends CepheusBaseActorSheet {
       fireSand:            CepheusShipSheet.#onFireSand,
       triggerScreens:      CepheusShipSheet.#onTriggerScreens,
       boardingAction:      CepheusShipSheet.#onBoardingAction,
+      reloadWeapon:        CepheusShipSheet.#onReloadWeapon,
     },
   };
 
@@ -91,8 +92,15 @@ export class CepheusShipSheet extends CepheusBaseActorSheet {
     const result = await promptForm({
       title: "CEPHEUS.ApplyHit",
       fields: [
-        { type: "number",   name: "damage",    label: "CEPHEUS.DamageAmount", min: 0 },
-        { type: "checkbox", name: "radiation", label: "CEPHEUS.Radiation" },
+        { type: "number", name: "damage", label: "CEPHEUS.DamageAmount", min: 0 },
+        {
+          type: "select", name: "radiation", label: "CEPHEUS.Radiation", selected: "",
+          options: {
+            "":        "CEPHEUS.RadiationNone",
+            standard:  "CEPHEUS.RadiationStandard",
+            meson:     "CEPHEUS.RadiationMeson",
+          },
+        },
       ],
     });
     if (result && result.damage > 0) {
@@ -187,5 +195,10 @@ export class CepheusShipSheet extends CepheusBaseActorSheet {
       ],
     });
     if (result) await this.actor.rollShipBoardingRound(result);
+  }
+
+  static async #onReloadWeapon(event, target) {
+    const item = this.actor.items.get(target.dataset.itemId);
+    if (item) await this.actor.rollShipReloadWeapon(item);
   }
 }

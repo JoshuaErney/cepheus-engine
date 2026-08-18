@@ -9,6 +9,14 @@ Last reviewed: 2026-08-18. Re-verify against the code before trusting specifics 
 a snapshot, not a live source of truth. A git repo was initialized 2026-07-08
 (see `git log`); treat file line numbers here as approximate.
 
+2026-08-18 (same day, fourth follow-up): closed the two remaining space-combat gaps from
+v0.2.0's §5 — Reload Weapons System (missile launchers/sandcasters now track a `loaded`
+state independent of ammo, per SRD p.152) and the bonus radiation crew hit special rule
+(SRD p.157 — automatic, not conditional on the Hit Location roll landing on Crew;
+`applyShipDamage`'s `radiation` param changed from boolean to a "" / "standard" / "meson"
+string as part of this). Regions-based AoE tooling stays deliberately unbuilt — no concrete
+use case to attach it to. See §2/§3 for specifics.
+
 2026-08-18 (same day, third follow-up): added the 10 narrower SRD "X Encounter Type"
 sub-tables and the 1D6 Animal Encounter Template that §5 previously listed as not included,
 and — since those sub-tables are useless without it — actual chained-draw behavior
@@ -189,10 +197,14 @@ module/data/item-data.mjs
                    cost, weaponType (nullable enum, "" = not a weapon, incl. "missile"),
                    mount ("" / turret / bay), damage (dice string), hits (0-3 turret/bay
                    damage track), ammo (missiles-in-magazine or sand canisters — GM sets
-                   the starting count by hand, no seed data), missileType (standard/
-                   smart/nuclear, only meaningful when weaponType is "missile"),
-                   screenType (nullable enum "" / meson / nuclear — independent of
-                   weaponType; screens aren't weapons), description
+                   the starting count by hand, no seed data), loaded (bool, initial true —
+                   Reload Weapons System, SRD p.152: a missile/sandcaster "spends" itself
+                   the instant it fires regardless of remaining ammo, and needs a
+                   rollShipReloadWeapon() action before firing again; ignored by every
+                   other weaponType), missileType (standard/smart/nuclear, only
+                   meaningful when weaponType is "missile"), screenType (nullable enum
+                   "" / meson / nuclear — independent of weaponType; screens aren't
+                   weapons), description
 
 module/documents/actor.mjs — CepheusActor
   prepareDerivedData(): for ships, sums itemTypes.shipComponent into usedTonnage /
@@ -236,22 +248,39 @@ module/documents/actor.mjs — CepheusActor
     check vs the weapon-type × range difficulty (CEPHEUS.spaceCombat.attackDifficulty);
     refuses to fire if the component isn't a weapon, is disabled (hits≥2), or
     can't reach that range; applies the tier-1 tracking-damage DM-2 automatically.
-  rollShipWeaponDamage(componentItem): rolls the component's damage formula.
-  applyShipDamage(rawDamage, {radiation}): subtracts armor, converts the result
-    to single/double/triple hits via damageToHits(), rolls Hit Location once per
-    hit (twice/thrice applied to the same location for double/triple hits per
-    SRD), and resolves each: Hull/Structure/Armor decrement directly; Sensors/
-    M-Drive/J-Drive/Power Plant/Bridge/Fuel/Hold increment a 0-3 ship-level tier
-    track (fuel/hold tiers also roll and actually consume the tracked resource);
-    Turret/Bay pick a random matching weapon component and increment its own
-    0-3 `hits` track; Crew rolls the Crew Damage table and reports the result
-    for the GM to apply manually (no crew roster exists in this system). Hits
-    beyond tier 3 redirect to Hull or Structure per the SRD's "Subsequent Hits"
-    rule. Posts one consolidated chat message per call.
-  _resolveShipHitLocation / _applyShipMountHit / _rollShipCrewDamage: internal
-    orchestration helpers for the above. _rollHitEvents(events, column, opts):
-    extracted from applyShipDamage's roll-Hit-Location-per-event loop so
-    rollShipBoardingRound() can reuse it against a forced "internal" column.
+  rollShipWeaponDamage(componentItem): rolls the component's damage formula
+    (offensive sandcaster use gets a fixed 1-point "roll" — see §3).
+  rollShipReloadWeapon(componentItem): Reload Weapons System (SRD p.152) —
+    flips a "spent" missile launcher/sandcaster's `loaded` field back to true,
+    provided ammo remains; refuses (with a chat/UI message) if already loaded
+    or out of ammo. rollShipMissileLaunch/rollShipAttack(sandcaster)/
+    rollShipFireSand all now gate on `loaded` and set it false on firing.
+  applyShipDamage(rawDamage, {radiation}): `radiation` is now a string —
+    "" (none) / "standard" (fusion/particle/nuclear-missile) / "meson" —
+    not a boolean. Subtracts armor (skipped entirely for "meson", which SRD
+    p.157 says ignores armor and always resolves on the internal Hit
+    Location column), converts the result to single/double/triple hits via
+    damageToHits(), rolls Hit Location once per hit (twice/thrice applied to
+    the same location for double/triple hits per SRD), and resolves each:
+    Hull/Structure/Armor decrement directly; Sensors/M-Drive/J-Drive/Power
+    Plant/Bridge/Fuel/Hold increment a 0-3 ship-level tier track (fuel/hold
+    tiers also roll and actually consume the tracked resource); Turret/Bay
+    pick a random matching weapon component and increment its own 0-3 `hits`
+    track; Crew rolls the Crew Damage table and reports the result for the
+    GM to apply manually (no crew roster exists in this system). Hits beyond
+    tier 3 redirect to Hull or Structure per the SRD's "Subsequent Hits"
+    rule. Any non-empty `radiation` also triggers an automatic BONUS crew
+    radiation hit (SRD p.157) — unconditional, unlike the Hit-Location-
+    triggered crew hit above (which only produces a radiation-formula result
+    if the roll happens to land on Crew) — with a -DM equal to the ship's
+    armor for "standard", no DM for "meson". Posts one consolidated chat
+    message per call.
+  _resolveShipHitLocation / _applyShipMountHit / _rollShipCrewDamage(radiation,
+    dm): internal orchestration helpers for the above — `dm` on
+    _rollShipCrewDamage is only used by the bonus-hit call above, never by
+    the ordinary Hit-Location-triggered path. _rollHitEvents(events, column,
+    opts): extracted from applyShipDamage's roll-Hit-Location-per-event loop
+    so rollShipBoardingRound() can reuse it against a forced "internal" column.
 
   Missiles/sand/screens/boarding (SRD p.155-157) — all resolved as further
   manual, chat-driven GM steps, matching every other ship-combat method above
@@ -259,9 +288,11 @@ module/documents/actor.mjs — CepheusActor
   rollShipMissileLaunch(componentItem, {range,skillLevel,dm}): the launch
     check; converts Effect to an impact to-hit target via
     helpers/spacecombat.mjs missileToHitTarget(), consumes ammo (12/bay,
-    1/turret), and reports flight time (CEPHEUS.spaceCombat.missileRangeTurns)
-    for the GM to track — no in-Foundry turn scheduler exists to auto-resolve
-    the SRD's multi-turn missile flight.
+    1/turret) and sets `loaded:false` (Reload Weapons System, SRD p.152 —
+    refuses to fire if already unloaded), and reports flight time
+    (CEPHEUS.spaceCombat.missileRangeTurns) for the GM to track — no
+    in-Foundry turn scheduler exists to auto-resolve the SRD's multi-turn
+    missile flight.
   rollShipMissileImpact(componentItem, {toHitTarget,reactionDM,missileType}):
     the GM-triggered second step; smart missiles always need 8+; on a hit,
     calls rollShipWeaponDamage() (still a separate step from the target's own
@@ -273,9 +304,16 @@ module/documents/actor.mjs — CepheusActor
   rollShipFireSand(componentItem, {skillLevel,dm}): defensive sandcaster use,
     1 canister → 1D6 reduction against ONE incoming damage roll (the system
     already resolves a multi-weapon mount's damage as a single roll, so this
-    doesn't attempt the SRD's per-beam granularity). rollShipWeaponDamage()
-    also now special-cases offensive sandcaster use as a fixed 1-point hit
-    (SRD p.157) when no dice-formula damage is set, rather than bailing out.
+    doesn't attempt the SRD's per-beam granularity). Also sets `loaded:false`
+    (Reload Weapons System). rollShipAttack() gates/consumes the same
+    ammo+loaded state for offensive sandcaster use (checked before the
+    range/difficulty prompt so an invalid-range attempt doesn't burn a
+    canister); rollShipWeaponDamage() special-cases offensive sandcaster use
+    as a fixed 1-point hit (SRD p.157) when no dice-formula damage is set,
+    rather than bailing out.
+  rollShipReloadWeapon(componentItem): significant action, sets
+    `loaded:true` if ammo remains — see item-data.mjs's `loaded` field note
+    above. Applies to missile launchers and sandcasters only.
   rollShipTriggerScreens(componentItem, {skillLevel}): 2D6+skill reduction,
     reported for the GM to subtract by hand on the next Apply Hit — same
     manual-compose-the-number convention as Fire Sand.
@@ -375,34 +413,39 @@ module/sheets/ship-sheet.mjs — CepheusShipSheet extends base
   PARTS: header, tabs, statistics, components, notes.
   Own actions: rollInitiative, rollAttack, rollWeaponDamage, applyShipHit,
   adjustSystemHit, adjustMountHit, launchMissile, resolveMissileImpact,
-  pointDefense, fireSand, triggerScreens, boardingAction. rollInitiative/
-  applyShipHit/resolveMissileImpact/pointDefense/fireSand/triggerScreens/
-  boardingAction all use promptForm (single-field or small multi-field
-  dialogs — the GM enters skill+DM combined as one number for point defense
-  and fire sand, matching the existing tacticsEffect-as-one-number pattern)
-  then delegate to the matching CepheusActor method. launchMissile takes no
-  dialog beyond the shared _promptRange picker (mirrors rollAttack's
-  minimalism — skillLevel/dm default to 0, same gap as every other ship
-  weapon roll from this sheet). resolveMissileImpact/launchMissile read
-  missileType off the component item directly rather than re-prompting for
-  it. The Add Component button uses the base createItem with
+  pointDefense, fireSand, triggerScreens, boardingAction, reloadWeapon.
+  rollInitiative/applyShipHit/resolveMissileImpact/pointDefense/fireSand/
+  triggerScreens/boardingAction all use promptForm (single-field or small
+  multi-field dialogs — the GM enters skill+DM combined as one number for
+  point defense and fire sand, matching the existing tacticsEffect-as-one-
+  number pattern) then delegate to the matching CepheusActor method.
+  applyShipHit's dialog now has radiation as a 3-way select
+  (none/standard/meson) instead of a checkbox — see actor.mjs's
+  applyShipDamage note above. launchMissile/reloadWeapon take no dialog
+  beyond the shared _promptRange picker for launchMissile (mirrors
+  rollAttack's minimalism — skillLevel/dm default to 0, same gap as every
+  other ship weapon roll from this sheet). resolveMissileImpact/launchMissile
+  read missileType off the component item directly rather than re-prompting
+  for it. The Add Component button uses the base createItem with
   data-type="shipComponent". systemHitRows derive from
   CEPHEUS.spaceCombat.subsystems keys + locationLabels — adding a subsystem
   needs only a config entry and a <key>Hits schema field. Components table
   gates action buttons per row on weaponType/mount/screenType: missile
-  launchers get Launch/Resolve Impact instead of Attack/Damage; sandcasters
-  additionally get Fire Sand; turret-mounted pulse/beam lasers get Point
-  Defense; any screenType gets Trigger Screens. Ammo is shown read-only in
-  the table (edited via the item sheet) for missile/sandcaster components.
+  launchers get Launch/Resolve Impact instead of Attack/Damage; missile
+  launchers and sandcasters both additionally get Reload; sandcasters also
+  get Fire Sand; turret-mounted pulse/beam lasers get Point Defense; any
+  screenType gets Trigger Screens. Ammo is shown read-only in the table
+  (edited via the item sheet) for missile/sandcaster components, with a
+  "SPENT" tag (`.spent-tag` in cepheus.css) when `loaded` is false.
 
 module/sheets/item-sheet.mjs — CepheusItemSheet, one sheet class for
   all 6 item types; body.hbs branches per itemType. rollAttack/rollDamage actions
   delegate to the owning actor if the item is embedded. (Own hierarchy —
   ItemSheetV2, not the actor base — but same submitOnChange/preventEnterSubmit
   wiring.) shipComponent fields now also expose missileType (shown only when
-  weaponType is "missile"), ammo (shown for missile/sandcaster weaponTypes via
-  a precomputed showAmmo context boolean), and screenType (always shown,
-  independent of weaponType).
+  weaponType is "missile"), ammo + loaded (shown together for missile/
+  sandcaster weaponTypes via a precomputed showAmmo context boolean), and
+  screenType (always shown, independent of weaponType).
 
 module/apps/chargen.mjs   (491 lines) — CepheusChargenApp (ApplicationV2)
   Full lifepath wizard, steps: characteristics → career → terms (loop) →
@@ -582,6 +625,23 @@ tests/localization.test.mjs   Every statically-referenced `CEPHEUS.*` localize k
   internal hit; Exceptional Success (attacker wins) → 2D6 raw internal damage through the normal
   damage-to-hits pipeline; Exceptional Success (defender wins) → narrative outcome only, no
   ship damage.
+- **Reload Weapons System (SRD p.152):** missile launchers and sandcasters now track a `loaded`
+  boolean independent of `ammo` — firing sets it false regardless of remaining ammo (a
+  launcher can be fully stocked and still need reloading), and `rollShipReloadWeapon()` is a
+  new significant action that sets it back to true if ammo remains. Like every other
+  ship-combat action here, the minor/significant action economy itself isn't tracked or
+  enforced (SRD p.150's per-turn action budget) — this only gates on `loaded`/`ammo`, not on
+  how many actions the crew has spent this turn.
+- **Bonus radiation crew hit (SRD p.157 Special Weapon Rules):** `applyShipDamage`'s
+  `radiation` option changed from a boolean to a 3-way string ("" / "standard" / "meson").
+  Any non-empty value now triggers an automatic bonus Crew Damage roll *in addition to* normal
+  damage — previously the `radiation` flag only changed what an *ordinary* Hit-Location roll
+  produced if it happened to land on Crew, which underused the "in addition to" wording and
+  skipped the bonus hit's own -DM(armor) penalty entirely. "standard" (fusion/particle/nuclear
+  missile) applies -DM equal to the ship's armor to that bonus roll; "meson" does not, and also
+  now bypasses armor entirely for the primary damage and always resolves on the internal Hit
+  Location column, per the SRD's "meson guns ignore armor... always roll on the Internal Damage
+  table."
 
 ---
 
@@ -659,20 +719,18 @@ damage-number entry, no macro/rollable-table content, and no automated tests. Se
 
 - Regions-based AoE tooling (CLAUDE.md notes Measured Templates are removed in v14 in
   favor of Regions — nothing in the system currently uses either, presumably not needed
-  yet given no template-based weapons/powers exist)
-- A "Reload Weapons System" action economy for missile racks/sandcasters (SRD p.152) —
-  ammo is tracked as a simple count (§2 item-data.mjs), but nothing enforces spending a
-  significant action to bring a spent launcher back into service; not modeled since this
-  system doesn't track minor/significant action economy for any other ship-combat action
-  either.
-- The full "bonus radiation crew hit in addition to normal damage" rule for meson/fusion/
-  particle/nuclear-missile hits (SRD p.157 Special Weapon Rules) — the existing `radiation`
-  flag on Apply Hit only changes what a Hit Location roll produces *if it happens to land
-  on Crew*; it doesn't add the automatic extra hit the SRD describes, or the −DM(armor)
-  penalty on that hit. This predates the missiles/sand/screens/boarding work (the flag
-  already existed for beam weapons) and was deliberately left alone rather than changed
-  as a side effect of adding nuclear missiles — flagged here as a known simplification,
-  not fixed.
+  yet given no template-based weapons/powers exist). Deliberately not scaffolded
+  speculatively — there's no concrete weapon/power to attach it to yet, and generic
+  "Regions tooling" with no real use case would be unbuildable-in-any-testable-way and
+  likely wrong for whatever the actual first use case turns out to be. Revisit when
+  something needs it.
+
+Resolved 2026-08-18 (same day, fourth follow-up — Reload Weapons System + bonus radiation
+hit): both items previously listed here are now implemented; see §2's item-data.mjs/
+actor.mjs/ship-sheet.mjs entries and §3's dedicated bullets for what changed. Note the
+`radiation` parameter on `applyShipDamage()` changed shape (boolean → 3-way string) as
+part of this — a real, deliberate behavior change to code that shipped in v0.2.0, not
+just new code.
 
 ---
 

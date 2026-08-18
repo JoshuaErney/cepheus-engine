@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+Closes the two remaining gaps from v0.2.0's space combat work.
+
+- **Reload Weapons System** (SRD p.152): missile launchers and sandcasters now track a
+  `loaded` state independent of ammo — firing "spends" the launcher regardless of how much
+  ammo remains, and a new Reload action (`rollShipReloadWeapon`) brings it back into service.
+- **Bonus radiation crew hit** (SRD p.157): fusion/particle/nuclear-missile/meson hits now
+  automatically inflict a bonus Crew Damage roll in addition to normal damage, instead of
+  only affecting the crew-hit formula when the ordinary Hit Location roll happened to land
+  on Crew. Fusion/particle/nuclear-missile bonus hits suffer a -DM equal to the target's
+  armor; meson does not (and meson hits now also bypass armor entirely for their primary
+  damage and always resolve on the internal Hit Location column, per the SRD). **Breaking
+  change to a v0.2.0 API:** `applyShipDamage()`'s `radiation` option is now a string
+  (`""` / `"standard"` / `"meson"`) instead of a boolean; the Apply Hit dialog's checkbox
+  became a 3-way select accordingly.
+
 ## [0.2.0] - 2026-08-18
 
 Adds the remaining SRD Chapter 10 space combat systems: missiles, sand, screens, and

@@ -359,6 +359,19 @@ export class CepheusActor extends Actor {
       return null;
     }
 
+    // Sandcasters use the same Reload Weapons System gate as missile
+    // launchers (SRD p.152) — see rollShipMissileLaunch()'s comment. Checked
+    // here, but only actually consumed below once range/difficulty are
+    // confirmed valid, so an invalid-range attempt doesn't burn a canister.
+    if (weaponType === "sandcaster" && !componentItem.system.loaded) {
+      ui.notifications.warn(`${componentItem.name} isn't loaded — reload it first.`);
+      return null;
+    }
+    if (weaponType === "sandcaster" && (componentItem.system.ammo ?? 0) < 1) {
+      ui.notifications.warn(`${componentItem.name}: out of sand canisters.`);
+      return null;
+    }
+
     const range = options.range ?? await this._promptRange(options.defaultRange ?? "short");
     if (!range) return null;
 
@@ -366,6 +379,13 @@ export class CepheusActor extends Actor {
     if (!diffKey) {
       ui.notifications.warn(`${componentItem.name} cannot fire at that range.`);
       return null;
+    }
+
+    // Firing "spends" the launcher and consumes a canister whether or not
+    // the shot connects, matching how the defensive Fire Sand reaction
+    // already consumes ammo regardless of check success.
+    if (weaponType === "sandcaster") {
+      await componentItem.update({ "system.ammo": (componentItem.system.ammo ?? 0) - 1, "system.loaded": false });
     }
 
     const trackingPenalty = hits === 1 ? -2 : 0;
@@ -414,32 +434,49 @@ export class CepheusActor extends Actor {
   // Resolves a raw (pre-armor) damage total against this ship: subtracts
   // armor, converts the result to a hit count via the Space Combat Damage
   // table, then rolls Hit Location and applies each effect in turn.
-  async applyShipDamage(rawDamage, { radiation = false } = {}) {
-    const armor     = this.system.armor ?? 0;
-    const effective = Math.max(0, rawDamage - armor);
+  // `radiation`: "" (none), "standard" (fusion/particle/nuclear-missile), or
+  // "meson" — SRD p.157 Special Weapon Rules. Both radiation categories
+  // trigger an automatic bonus crew radiation hit *in addition to* normal
+  // damage (below), unconditionally — not just when the ordinary Hit
+  // Location roll happens to land on Crew (that's handled separately, in
+  // _resolveShipHitLocation). Meson guns additionally ignore armor entirely
+  // and always resolve on the internal Hit Location column (the blast
+  // "only becomes harmful after it has already passed through the hull");
+  // "standard" weapons use armor normally for their primary damage, and
+  // their bonus radiation hit suffers a -DM equal to the ship's armor
+  // (meson's bonus hit doesn't, consistent with meson ignoring armor).
+  async applyShipDamage(rawDamage, { radiation = "" } = {}) {
+    const armor          = this.system.armor ?? 0;
+    const bypassesArmor  = radiation === "meson";
+    const effective       = bypassesArmor ? rawDamage : Math.max(0, rawDamage - armor);
 
     const lines = [
       `<strong>${this.name}</strong> — Space Combat Damage`,
-      `<span class="cepheus-chat-detail">Raw ${rawDamage} − Armor ${armor} = ${effective} effective</span>`,
+      bypassesArmor
+        ? `<span class="cepheus-chat-detail">Raw ${rawDamage} (meson — ignores armor)</span>`
+        : `<span class="cepheus-chat-detail">Raw ${rawDamage} − Armor ${armor} = ${effective} effective</span>`,
     ];
 
     if (effective <= 0) {
       lines.push("No damage.");
-      await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this }), content: lines.join("<br>") });
-      return;
+    } else {
+      const hits   = damageToHits(effective);
+      const events = [
+        ...Array(hits.single).fill(1),
+        ...Array(hits.double).fill(2),
+        ...Array(hits.triple).fill(3),
+      ];
+      const column = this.system.isSmallCraft
+        ? "smallCraft"
+        : (bypassesArmor ? "internal" : (this.system.hullPoints.value > 0 ? "external" : "internal"));
+
+      lines.push(...await this._rollHitEvents(events, column, { radiation }));
     }
 
-    const hits   = damageToHits(effective);
-    const events = [
-      ...Array(hits.single).fill(1),
-      ...Array(hits.double).fill(2),
-      ...Array(hits.triple).fill(3),
-    ];
-    const column = this.system.isSmallCraft
-      ? "smallCraft"
-      : (this.system.hullPoints.value > 0 ? "external" : "internal");
-
-    lines.push(...await this._rollHitEvents(events, column, { radiation }));
+    if (radiation) {
+      const bonusDm = bypassesArmor ? 0 : -armor;
+      lines.push(`Bonus radiation hit (SRD p.157)${bonusDm ? ` (DM${signed(bonusDm)})` : ""} — ${await this._rollShipCrewDamage(true, bonusDm)}`);
+    }
 
     await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this }), content: lines.join("<br>") });
   }
@@ -448,7 +485,7 @@ export class CepheusActor extends Actor {
   // single/double/triple hit) against the given Hit Location column, and
   // resolves each. Shared by applyShipDamage() and the Abstract Boarding
   // Rules' internal-damage resolution (rollShipBoardingRound()).
-  async _rollHitEvents(events, column, { radiation = false } = {}) {
+  async _rollHitEvents(events, column, { radiation = "" } = {}) {
     const lines = [];
     for (const multiplier of events) {
       const locRoll = await new Roll("2d6").evaluate();
@@ -460,7 +497,7 @@ export class CepheusActor extends Actor {
     return lines;
   }
 
-  async _resolveShipHitLocation(locationKey, multiplier, { radiation = false } = {}) {
+  async _resolveShipHitLocation(locationKey, multiplier, { radiation = "" } = {}) {
     const sc = CONFIG.CEPHEUS.spaceCombat;
 
     if (locationKey === "hull") {
@@ -542,7 +579,7 @@ export class CepheusActor extends Actor {
     return text;
   }
 
-  async _applyShipMountHit(mount, multiplier, { radiation = false } = {}) {
+  async _applyShipMountHit(mount, multiplier, { radiation = "" } = {}) {
     const sc  = CONFIG.CEPHEUS.spaceCombat;
     const def = sc.mountHits[mount];
     const candidates = (this.itemTypes.shipComponent ?? [])
@@ -566,9 +603,13 @@ export class CepheusActor extends Actor {
     return text;
   }
 
-  async _rollShipCrewDamage(radiation) {
+  // `dm`: only used by applyShipDamage()'s bonus radiation hit, which
+  // applies a -DM equal to the ship's armor (SRD p.157) to this severity
+  // roll — not the ordinary Hit-Location-triggered crew hit, which never
+  // gets this penalty.
+  async _rollShipCrewDamage(radiation, dm = 0) {
     const cd = CONFIG.CEPHEUS.spaceCombat.crewDamage;
-    const r  = await new Roll("2d6").evaluate();
+    const r  = await new Roll(`2d6 + ${dm}`).evaluate();
     const total = r.total;
 
     let entry;
@@ -614,6 +655,14 @@ export class CepheusActor extends Actor {
       ui.notifications.warn(`${componentItem.name} is disabled and cannot fire.`);
       return null;
     }
+    // Reload Weapons System (SRD p.152): a launcher "spends" itself the
+    // instant it fires, independent of the ship's total missile stock, and
+    // needs a crew member to reload it (rollShipReloadWeapon()) before it
+    // can fire again.
+    if (!componentItem.system.loaded) {
+      ui.notifications.warn(`${componentItem.name} isn't loaded — reload it first.`);
+      return null;
+    }
 
     const missileType = componentItem.system.missileType ?? "standard";
     const typeDef     = CONFIG.CEPHEUS.spaceCombat.missileTypes[missileType];
@@ -641,7 +690,7 @@ export class CepheusActor extends Actor {
     const check = await evaluateCheck({ dm: skillLevel + dm + trackingPenalty, difficulty: diffKey });
     const toHit = typeDef.smart ? 8 : missileToHitTarget(check.effect);
 
-    await componentItem.update({ "system.ammo": ammo - ammoCost });
+    await componentItem.update({ "system.ammo": ammo - ammoCost, "system.loaded": false });
 
     const rangeLabel = game.i18n.localize(CONFIG.CEPHEUS.spaceCombat.rangeBands[range]);
     const lines = [
@@ -697,7 +746,7 @@ export class CepheusActor extends Actor {
 
     const damageRoll = await this.rollShipWeaponDamage(componentItem);
     if (typeDef.nuclear) {
-      ui.notifications.info(`${componentItem.name}: nuclear missile — check "Radiation" on the target's Apply Hit dialog.`);
+      ui.notifications.info(`${componentItem.name}: nuclear missile — set Radiation to "Standard" on the target's Apply Hit dialog.`);
     }
     return { hit: true, roll, damageRoll };
   }
@@ -725,6 +774,35 @@ export class CepheusActor extends Actor {
     return { success: check.success };
   }
 
+  // Significant action: brings a "spent" missile launcher or sandcaster
+  // back into service (SRD p.152) — see the `loaded` field comment on
+  // ShipComponentData. Distinct from ammo: a launcher can be fully stocked
+  // and still need this after firing. Like every other ship-combat action
+  // in this system, the significant/minor action economy itself isn't
+  // tracked or enforced — this just flips the flag and reports the result.
+  async rollShipReloadWeapon(componentItem) {
+    if (!["missile", "sandcaster"].includes(componentItem.system.weaponType)) {
+      ui.notifications.warn(`${componentItem.name} doesn't need reloading.`);
+      return null;
+    }
+    if (componentItem.system.loaded) {
+      ui.notifications.info(`${componentItem.name} is already loaded.`);
+      return { reloaded: false };
+    }
+    const ammo = componentItem.system.ammo ?? 0;
+    if (ammo < 1) {
+      ui.notifications.warn(`${componentItem.name}: no ammo left to reload with.`);
+      return { reloaded: false };
+    }
+
+    await componentItem.update({ "system.loaded": true });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      content: `<strong>${componentItem.name}</strong> — reloaded and ready to fire.`,
+    });
+    return { reloaded: true };
+  }
+
   // ── Sand (SRD p.155, 157, 130) ───────────────────────────────────────────
 
   // Reaction: reduces the damage of an incoming beam attack by 1D6, costing
@@ -738,6 +816,11 @@ export class CepheusActor extends Actor {
       ui.notifications.warn(`${componentItem.name} is not a sandcaster.`);
       return null;
     }
+    // Reload Weapons System (SRD p.152) — see rollShipMissileLaunch()'s comment.
+    if (!componentItem.system.loaded) {
+      ui.notifications.warn(`${componentItem.name} isn't loaded — reload it first.`);
+      return null;
+    }
     const ammo = componentItem.system.ammo ?? 0;
     if (ammo < 1) {
       ui.notifications.warn(`${componentItem.name}: out of sand canisters.`);
@@ -748,7 +831,7 @@ export class CepheusActor extends Actor {
     let reduction = 0;
     if (check.success) reduction = (await new Roll("1d6").evaluate()).total;
 
-    await componentItem.update({ "system.ammo": ammo - 1 });
+    await componentItem.update({ "system.ammo": ammo - 1, "system.loaded": false });
 
     await check.roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: this }),

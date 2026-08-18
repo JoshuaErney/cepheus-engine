@@ -59,6 +59,11 @@
           <td class="component-ammo">
             {{#if (includes (array "missile" "sandcaster") item.system.weaponType)}}
               {{item.system.ammo}}
+              {{#unless item.system.loaded}}
+                <span class="component-type-tag spent-tag" title="{{localize 'CEPHEUS.NotLoaded'}}">
+                  {{localize "CEPHEUS.NotLoadedAbbr"}}
+                </span>
+              {{/unless}}
             {{/if}}
           </td>
           <td class="component-hits">
@@ -96,6 +101,12 @@
               <button type="button" data-action="fireSand" data-item-id="{{item.id}}"
                       title="{{localize 'CEPHEUS.FireSand'}}">
                 <i class="fas fa-shield-halved"></i>
+              </button>
+            {{/if}}
+            {{#if (includes (array "missile" "sandcaster") item.system.weaponType)}}
+              <button type="button" data-action="reloadWeapon" data-item-id="{{item.id}}"
+                      title="{{localize 'CEPHEUS.ReloadWeapon'}}">
+                <i class="fas fa-arrow-rotate-left"></i>
               </button>
             {{/if}}
             {{#if (eq item.system.mount "turret")}}

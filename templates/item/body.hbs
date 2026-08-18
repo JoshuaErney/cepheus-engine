@@ -208,6 +208,10 @@
           <label>{{localize "CEPHEUS.Ammo"}}</label>
           <input type="number" name="system.ammo" value="{{system.ammo}}" min="0" {{#unless editable}}disabled{{/unless}} />
         </div>
+        <div class="form-group">
+          <label>{{localize "CEPHEUS.Loaded"}}</label>
+          <input type="checkbox" name="system.loaded" {{#if system.loaded}}checked{{/if}} {{#unless editable}}disabled{{/unless}} />
+        </div>
       {{/if}}
       <div class="form-group">
         <label>{{localize "CEPHEUS.ScreenType"}}</label>

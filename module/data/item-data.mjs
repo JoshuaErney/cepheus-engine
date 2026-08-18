@@ -107,6 +107,13 @@ export class ShipComponentData extends foundry.abstract.TypeDataModel {
       // the starting count by hand (no ammo is included in a launcher's
       // purchase cost per SRD p.130).
       ammo: new fields.NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+      // Reload Weapons System (SRD p.152): missile racks/bays and sandcasters
+      // go "spent" the instant they fire — regardless of how much ammo is
+      // left in the magazine — and need a crew member to spend a significant
+      // action reloading them before they can fire again. Only meaningful
+      // for weaponType "missile"/"sandcaster"; every other weapon type
+      // ignores it (energy weapons don't run dry between shots).
+      loaded: new fields.BooleanField({ initial: true }),
       // Only meaningful when weaponType is "missile" — see
       // CEPHEUS.spaceCombat.missileTypes.
       missileType: new fields.StringField({

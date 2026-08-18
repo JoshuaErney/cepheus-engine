@@ -297,6 +297,12 @@
   color: #c17b6b;
 }
 
+.cepheus-engine .component-type-tag.spent-tag {
+  color: #b05050;
+  font-weight: bold;
+  margin-left: 0.3rem;
+}
+
 /* ---- Space combat ---- */
 .cepheus-engine .combat-actions {
   gap: 0.5rem;
