@@ -2,7 +2,7 @@
   "id": "cepheus-engine",
   "title": "Cepheus Engine SRD",
   "description": "A Foundry VTT implementation of the Cepheus Engine System Reference Document, an open-source sci-fi RPG based on Classic Traveller.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "compatibility": {
     "minimum": "14",
     "verified": "14"
