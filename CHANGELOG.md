@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [0.2.1] - 2026-08-18
 
 Closes the two remaining gaps from v0.2.0's space combat work.
 
